@@ -96,7 +96,9 @@ into your Home Assistant config directory.
 
 ## Licence and attribution
 
-MIT. The integration's skeleton — entity base classes, platform patterns, config entry lifecycle and
-CI workflow — is derived from [EV Smart Charging](https://github.com/jonasbkarlsson/ev_smart_charging)
+MIT — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+
+The integration's skeleton — entity base classes, platform patterns, config entry lifecycle and CI
+workflow — is derived from [EV Smart Charging](https://github.com/jonasbkarlsson/ev_smart_charging)
 by Jonas Karlsson, also MIT. Its scheduling logic and EV-specific handling are not used here:
 SpotBuddy reads a plan committed by its own backend rather than optimising locally.

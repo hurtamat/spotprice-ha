@@ -1,0 +1,11 @@
+SpotBuddy for Home Assistant
+Copyright (c) 2026 Matej Hurta
+
+This project's integration skeleton — the entity base classes, platform patterns,
+config entry lifecycle and CI workflow — is derived from EV Smart Charging,
+https://github.com/jonasbkarlsson/ev_smart_charging, Copyright (c) 2022 Jonas
+Karlsson, used under the MIT License.
+
+Its scheduling logic, EV/SOC handling and price-sensor adaptors are not used
+here: SpotBuddy reads a plan committed by its own backend rather than
+optimising locally.
