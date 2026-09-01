@@ -1,0 +1,69 @@
+blueprint:
+  name: SpotBuddy - run a device during the cheap hours
+  description: >-
+    Switches a device on and off to follow the run blocks SpotBuddy picked for
+    the day. Use this when you want SpotBuddy's plan to drive an entity it is
+    not configured to control directly, or when you want to add your own
+    conditions on top.
+  domain: automation
+  homeassistant:
+    min_version: "2024.4.0"
+  source_url: https://github.com/hurtamat/spotprice-ha/blob/main/blueprints/automation/spotbuddy/cheap_hours_switch.yaml
+  input:
+    spotbuddy_sensor:
+      name: SpotBuddy run sensor
+      description: The binary sensor that is on during the cheap hours.
+      selector:
+        entity:
+          filter:
+            - domain: binary_sensor
+              integration: spotbuddy
+    target_entity:
+      name: Device to control
+      description: The switch, plug or relay to turn on and off.
+      selector:
+        entity:
+          filter:
+            - domain: switch
+            - domain: input_boolean
+            - domain: light
+    extra_conditions:
+      name: Extra conditions (optional)
+      description: >-
+        Only act when these also hold - for example "somebody is home", or a
+        temperature below a threshold.
+      default: []
+      selector:
+        condition:
+
+mode: queued
+max: 10
+
+triggers:
+  - trigger: state
+    entity_id: !input spotbuddy_sensor
+    to: "on"
+    id: cheap_hours_started
+  - trigger: state
+    entity_id: !input spotbuddy_sensor
+    to: "off"
+    id: cheap_hours_ended
+
+conditions: !input extra_conditions
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: cheap_hours_started
+        sequence:
+          - action: homeassistant.turn_on
+            target:
+              entity_id: !input target_entity
+      - conditions:
+          - condition: trigger
+            id: cheap_hours_ended
+        sequence:
+          - action: homeassistant.turn_off
+            target:
+              entity_id: !input target_entity

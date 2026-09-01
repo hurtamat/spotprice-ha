@@ -11,6 +11,8 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.selector import (
+    EntitySelector,
+    EntitySelectorConfig,
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
@@ -22,6 +24,7 @@ from homeassistant.helpers.selector import (
 from .const import (
     CONF_API_KEY,
     CONF_BASE_URL,
+    CONF_CONTROLLED_SWITCH,
     CONF_DEVICE_NAME,
     CONF_LATITUDE,
     CONF_LONGITUDE,
@@ -34,6 +37,11 @@ _LOGGER = logging.getLogger(__name__)
 
 _COORDINATE_SELECTOR = NumberSelector(
     NumberSelectorConfig(min=-180, max=180, step=0.000001, mode=NumberSelectorMode.BOX)
+)
+
+# Leave empty to publish binary_sensor.spotbuddy_running only and automate it yourself.
+_CONTROLLED_SWITCH_SELECTOR = EntitySelector(
+    EntitySelectorConfig(domain=["switch", "input_boolean"])
 )
 
 
@@ -73,6 +81,7 @@ class SpotBuddyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_API_KEY: "",
                 CONF_LATITUDE: self.hass.config.latitude,
                 CONF_LONGITUDE: self.hass.config.longitude,
+                CONF_CONTROLLED_SWITCH: "",
             }
         else:
             error = _validate(user_input)
@@ -102,6 +111,12 @@ class SpotBuddyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(
                         CONF_LONGITUDE, default=user_input[CONF_LONGITUDE]
                     ): _COORDINATE_SELECTOR,
+                    vol.Optional(
+                        CONF_CONTROLLED_SWITCH,
+                        description={
+                            "suggested_value": user_input[CONF_CONTROLLED_SWITCH]
+                        },
+                    ): _CONTROLLED_SWITCH_SELECTOR,
                 }
             ),
             errors=self._errors,
@@ -146,6 +161,14 @@ class SpotBuddyOptionsFlow(config_entries.OptionsFlow):
                     vol.Required(
                         CONF_LONGITUDE, default=get_parameter(entry, CONF_LONGITUDE)
                     ): _COORDINATE_SELECTOR,
+                    vol.Optional(
+                        CONF_CONTROLLED_SWITCH,
+                        description={
+                            "suggested_value": get_parameter(
+                                entry, CONF_CONTROLLED_SWITCH, ""
+                            )
+                        },
+                    ): _CONTROLLED_SWITCH_SELECTOR,
                 }
             ),
             errors=self._errors,

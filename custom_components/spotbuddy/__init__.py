@@ -36,6 +36,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # The config entities restore their values as they are added, so the first
     # fetch happens once the platforms are up rather than before them.
     await coordinator.async_refresh()
+    await coordinator.async_apply_control()
 
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     _sync_device_name(hass, entry)

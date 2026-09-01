@@ -18,11 +18,16 @@ Keep your electricity supplier, keep your devices. No hardware to buy.
 
 ### HACS
 
-1. HACS → three-dot menu → **Custom repositories**
-2. Add this repository's URL, category **Integration**
-3. Find **SpotBuddy** in HACS and click **Download**
-4. Restart Home Assistant
-5. Settings → Devices & Services → **Add integration** → **SpotBuddy**
+[![Open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=hurtamat&repository=spotprice-ha&category=integration)
+
+The badge opens your own Home Assistant with this repository pre-filled — no URLs to copy. Click
+**Download**, then restart Home Assistant and add the integration:
+
+[![Add the SpotBuddy integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=spotbuddy)
+
+Doing it by hand instead: HACS → three-dot menu → **Custom repositories** → add this repository's
+URL with category **Integration** → find **SpotBuddy** → **Download** → restart → Settings →
+Devices & Services → **Add integration** → **SpotBuddy**.
 
 ### Manual
 
@@ -31,13 +36,19 @@ and restart Home Assistant.
 
 ## Configuration
 
-Everything is configured in the UI. The initial dialog asks for four things:
+Everything is configured in the UI. The dialog asks for:
 
-| Field | Meaning |
-| --- | --- |
-| Backend URL | Where your SpotBuddy API lives |
-| API key | Sent as `X-Api-Key` |
-| Latitude / Longitude | Pre-filled from Home Assistant's own location; decides which bidding zone your prices come from |
+| Field | Required | Meaning |
+| --- | --- | --- |
+| Backend URL | yes | Where your SpotBuddy API lives |
+| API key | yes | Sent as `X-Api-Key` |
+| Latitude / Longitude | yes | Pre-filled from Home Assistant's own location; decides which bidding zone your prices come from |
+| Controlled switch | no | Pick a switch and SpotBuddy turns it on and off for you. Leave it empty to drive things from your own automations instead. |
+
+**Setting a controlled switch is the whole setup.** SpotBuddy switches that entity on when a cheap
+block starts and off when it ends — no automation, no YAML. It only acts when the entity's state
+differs from what the plan wants, so if you flip it by hand it stays flipped until the next
+15-minute boundary.
 
 ## Entities
 
@@ -63,9 +74,19 @@ One config entry drives one appliance. Add the integration a second time for a s
 | `switch.spotbuddy_enabled` | Master off switch |
 | `button.spotbuddy_refresh_plan` | Fetch the plan again now |
 
-## Using it
+## Using it without a controlled switch
 
-Trigger an automation on `binary_sensor.spotbuddy_running`:
+If you left **Controlled switch** empty, drive things yourself from
+`binary_sensor.spotbuddy_running`, which is on during the cheap hours.
+
+### With the blueprint
+
+[![Import the SpotBuddy blueprint.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fhurtamat%2Fspotprice-ha%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fspotbuddy%2Fcheap_hours_switch.yaml)
+
+Import it, pick the run sensor and the device to control from dropdowns, and optionally add extra
+conditions such as "somebody is home". No YAML.
+
+### By hand
 
 ```yaml
 automation:

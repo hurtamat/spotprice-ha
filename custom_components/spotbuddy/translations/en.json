@@ -9,7 +9,11 @@
           "base_url": "Backend URL",
           "api_key": "API key",
           "latitude": "Latitude",
-          "longitude": "Longitude"
+          "longitude": "Longitude",
+          "controlled_switch": "Controlled switch (optional)"
+        },
+        "data_description": {
+          "controlled_switch": "Pick a switch and SpotBuddy turns it on and off for you, so you need no automation. Leave empty to use binary_sensor.spotbuddy_running in your own automations instead."
         }
       }
     },
@@ -25,7 +29,11 @@
           "base_url": "Backend URL",
           "api_key": "API key",
           "latitude": "Latitude",
-          "longitude": "Longitude"
+          "longitude": "Longitude",
+          "controlled_switch": "Controlled switch (optional)"
+        },
+        "data_description": {
+          "controlled_switch": "Pick a switch and SpotBuddy turns it on and off for you, so you need no automation. Leave empty to use binary_sensor.spotbuddy_running in your own automations instead."
         }
       }
     },

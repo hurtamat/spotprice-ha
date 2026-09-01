@@ -43,6 +43,8 @@ CONF_BASE_URL = "base_url"
 CONF_API_KEY = "api_key"
 CONF_LATITUDE = "latitude"
 CONF_LONGITUDE = "longitude"
+# Optional: an entity SpotBuddy switches directly, so no automation is needed.
+CONF_CONTROLLED_SWITCH = "controlled_switch"
 
 # Status sensor states. Kept as slugs so automations are language-independent.
 STATUS_DISABLED = "disabled"

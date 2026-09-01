@@ -12,6 +12,7 @@ from datetime import date, datetime, time, timedelta
 import logging
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import SERVICE_TURN_OFF, SERVICE_TURN_ON, STATE_ON
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -23,6 +24,7 @@ from .api import SpotBuddyApiClient, SpotBuddyApiError, SpotBuddyAuthError
 from .const import (
     CONF_API_KEY,
     CONF_BASE_URL,
+    CONF_CONTROLLED_SWITCH,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     DEFAULT_DURATION_HOURS,
@@ -112,6 +114,10 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
         )
         self.longitude: float = float(
             get_parameter(config_entry, CONF_LONGITUDE, hass.config.longitude)
+        )
+        # Optional: an entity we drive directly, so the user needs no automation.
+        self.controlled_switch: str | None = (
+            get_parameter(config_entry, CONF_CONTROLLED_SWITCH, "") or None
         )
         self.client = SpotBuddyApiClient(
             async_get_clientsession(hass),
@@ -223,16 +229,53 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
 
     async def _async_scheduled_refresh(self, date_time: datetime | None = None) -> None:
         """Time-triggered plan refresh."""
-        await self.async_request_refresh()
+        await self.async_refresh()
+        await self.async_apply_control()
 
     async def async_config_updated(self) -> None:
         """A config entity changed; the committed plan no longer matches it."""
         _LOGGER.debug("SpotBuddyCoordinator.async_config_updated")
         await self.async_request_refresh()
+        # The refresh is debounced, but "Enabled off" must reach the relay now.
+        await self.async_apply_control()
 
     async def _async_tick(self, date_time: datetime | None = None) -> None:
-        """Push the new slot's state out to the entities."""
+        """Push the new slot's state out to the entities and the controlled switch."""
         self.async_update_listeners()
+        await self.async_apply_control()
+
+    async def async_apply_control(self) -> None:
+        """Drive the controlled entity, if the user picked one.
+
+        Only called when the desired state differs from the entity's actual one,
+        so a user who flips the switch by hand keeps it until the next boundary
+        rather than fighting us every tick.
+        """
+        if self.controlled_switch is None:
+            return
+
+        state = self.hass.states.get(self.controlled_switch)
+        if state is None:
+            _LOGGER.warning(
+                "Controlled entity %s does not exist; not switching",
+                self.controlled_switch,
+            )
+            return
+
+        desired = self.is_running
+        if (state.state == STATE_ON) == desired:
+            return
+
+        domain = self.controlled_switch.split(".", 1)[0]
+        _LOGGER.debug(
+            "Turning %s %s", self.controlled_switch, "on" if desired else "off"
+        )
+        await self.hass.services.async_call(
+            domain,
+            SERVICE_TURN_ON if desired else SERVICE_TURN_OFF,
+            {"entity_id": self.controlled_switch},
+            blocking=False,
+        )
 
     @property
     def is_running(self) -> bool:
