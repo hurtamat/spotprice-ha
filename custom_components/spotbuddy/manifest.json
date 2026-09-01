@@ -2,13 +2,13 @@
   "domain": "spotbuddy",
   "name": "SpotBuddy",
   "codeowners": [
-    "@matejhurta"
+    "@hurtamat"
   ],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/matejhurta/spotPriceCalc",
+  "documentation": "https://github.com/hurtamat/spotprice-ha",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/matejhurta/spotPriceCalc/issues",
+  "issue_tracker": "https://github.com/hurtamat/spotprice-ha/issues",
   "requirements": [],
   "version": "0.1.0"
 }

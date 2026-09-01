@@ -6,7 +6,7 @@ from homeassistant.const import __version__ as HA_VERSION
 NAME = "SpotBuddy"
 DOMAIN = "spotbuddy"
 VERSION = "0.1.0"
-ISSUE_URL = "https://github.com/matejhurta/spotPriceCalc/issues"
+ISSUE_URL = "https://github.com/hurtamat/spotprice-ha/issues"
 
 # Icons
 ICON = "mdi:flash"
