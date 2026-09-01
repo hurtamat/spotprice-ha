@@ -1,0 +1,14 @@
+{
+  "domain": "spotbuddy",
+  "name": "SpotBuddy",
+  "codeowners": [
+    "@matejhurta"
+  ],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/matejhurta/spotPriceCalc",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/matejhurta/spotPriceCalc/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

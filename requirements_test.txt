@@ -1,0 +1,3 @@
+# Test harness for the Home Assistant custom integration (custom_components/spotbuddy).
+# Pins Home Assistant itself; pick the release matching the HA version you target.
+pytest-homeassistant-custom-component==0.13.340

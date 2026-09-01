@@ -1,0 +1,96 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "SpotBuddy",
+        "description": "Connect to your SpotBuddy backend. The coordinates default to your Home Assistant location and decide which bidding zone your prices come from.",
+        "data": {
+          "device_name": "Name",
+          "base_url": "Backend URL",
+          "api_key": "API key",
+          "latitude": "Latitude",
+          "longitude": "Longitude"
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "The backend URL must start with http:// or https://"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "SpotBuddy",
+        "data": {
+          "base_url": "Backend URL",
+          "api_key": "API key",
+          "latitude": "Latitude",
+          "longitude": "Longitude"
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "The backend URL must start with http:// or https://"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "running": {
+        "name": "Running"
+      }
+    },
+    "sensor": {
+      "status": {
+        "name": "Status",
+        "state": {
+          "disabled": "Disabled",
+          "waiting_for_plan": "Waiting for plan",
+          "no_plan": "No plan",
+          "waiting_to_start": "Waiting to start",
+          "running": "Running",
+          "backend_unavailable": "Backend unavailable"
+        }
+      },
+      "price": {
+        "name": "Current price"
+      },
+      "price_level": {
+        "name": "Price level",
+        "state": {
+          "green": "Cheap",
+          "yellow": "Average",
+          "red": "Expensive"
+        }
+      }
+    },
+    "switch": {
+      "enabled": {
+        "name": "Enabled"
+      },
+      "continuous_block": {
+        "name": "Continuous block"
+      }
+    },
+    "number": {
+      "duration_hours": {
+        "name": "Duration"
+      }
+    },
+    "time": {
+      "ready_by": {
+        "name": "Ready by"
+      },
+      "unavailable_from": {
+        "name": "Unavailable from"
+      },
+      "unavailable_to": {
+        "name": "Unavailable to"
+      }
+    },
+    "button": {
+      "refresh_plan": {
+        "name": "Refresh plan"
+      }
+    }
+  }
+}
