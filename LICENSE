@@ -1,12 +1,6 @@
 MIT License
 
-Copyright (c) 2026 Matej Hurta
-
-Portions of this project — the entity base classes, platform patterns, config entry
-lifecycle and CI workflow — are derived from EV Smart Charging
-(https://github.com/jonasbkarlsson/ev_smart_charging):
-
-Copyright (c) 2022 Jonas Karlsson
+Copyright (c) 2026 Matej Hurta @hurtamat
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
