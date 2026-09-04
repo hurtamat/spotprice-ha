@@ -66,16 +66,34 @@ class ScheduledBlock:
 
 
 @dataclass
+class CurveSlot:
+    """One delivery slot of the price curve, parsed for lookup by time."""
+
+    start_utc: datetime
+    end_utc: datetime
+    eur_per_mwh: float | None = None
+    level: str | None = None
+
+    def contains(self, moment: datetime) -> bool:
+        """Whether moment falls inside this slot. Half-open, as on the backend."""
+        return self.start_utc <= moment < self.end_utc
+
+
+@dataclass
 class SpotBuddyPlan:
     """The committed plan for one device, plus the ambient price state."""
 
     zone_name: str | None = None
     scheduled: bool = False
     blocks: list[ScheduledBlock] = field(default_factory=list)
-    current_price: float | None = None
-    price_level: str | None = None
+    # The raw curve, passed through to the price sensor's attribute for chart cards.
     curve: list[dict] = field(default_factory=list)
+    slots: list[CurveSlot] = field(default_factory=list)
     fetched_at: datetime | None = None
+
+    def slot_at(self, moment: datetime) -> CurveSlot | None:
+        """The curve slot covering moment, if any."""
+        return next((s for s in self.slots if s.contains(moment)), None)
 
     def block_at(self, moment: datetime) -> ScheduledBlock | None:
         """The block covering moment, if any."""
@@ -215,15 +233,29 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
                 )
             )
 
-        price = body.get("price") or {}
+        curve = body.get("curve") or []
+
+        slots = []
+        for raw in curve:
+            start = dt_util.parse_datetime(raw.get("start_utc") or "")
+            end = dt_util.parse_datetime(raw.get("end_utc") or "")
+            if start is None or end is None:
+                continue
+            slots.append(
+                CurveSlot(
+                    start_utc=dt_util.as_utc(start),
+                    end_utc=dt_util.as_utc(end),
+                    eur_per_mwh=raw.get("eur_per_mwh"),
+                    level=_level_name(raw.get("level")),
+                )
+            )
 
         return SpotBuddyPlan(
             zone_name=body.get("zone_name"),
             scheduled=bool(task.get("scheduled")),
             blocks=sorted(blocks, key=lambda b: b.start_utc),
-            current_price=price.get("current_eur_per_mwh"),
-            price_level=_level_name(price.get("current_level")),
-            curve=price.get("curve") or [],
+            curve=curve,
+            slots=sorted(slots, key=lambda s: s.start_utc),
             fetched_at=dt_util.utcnow(),
         )
 
@@ -276,6 +308,48 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
             {"entity_id": self.controlled_switch},
             blocking=False,
         )
+
+    @property
+    def current_price(self) -> float | None:
+        """Price for the slot happening now.
+
+        Read off the curve rather than anything computed at fetch time: the plan is
+        fetched twice a day, so a fetch-time value is stale within the hour. The
+        curve covers today and tomorrow, and the quarter-hourly tick re-reads it.
+        """
+        if self.data is None:
+            return None
+        slot = self.data.slot_at(dt_util.utcnow())
+        return slot.eur_per_mwh if slot is not None else None
+
+    @property
+    def price_level(self) -> str | None:
+        """Price colour for the slot happening now. Same reasoning as current_price."""
+        if self.data is None:
+            return None
+        slot = self.data.slot_at(dt_util.utcnow())
+        return slot.level if slot is not None else None
+
+    @property
+    def next_start(self) -> datetime | None:
+        """When the appliance next switches on. None while nothing further is planned.
+
+        While a block is running this is the *following* block, which is what a split
+        (non-continuous) plan needs.
+        """
+        if not self.enabled or self.data is None:
+            return None
+        block = self.data.next_block(dt_util.utcnow())
+        return block.start_utc if block is not None else None
+
+    @property
+    def next_end(self) -> datetime | None:
+        """When the current run ends, or the next one would. None when nothing is planned."""
+        if not self.enabled or self.data is None:
+            return None
+        now = dt_util.utcnow()
+        block = self.data.block_at(now) or self.data.next_block(now)
+        return block.end_utc if block is not None else None
 
     @property
     def is_running(self) -> bool:

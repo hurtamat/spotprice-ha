@@ -35,8 +35,10 @@ from .helpers.general import DeviceNameCreator, get_parameter
 
 _LOGGER = logging.getLogger(__name__)
 
+# step="any" rather than a small float: Home Assistant rejects a step below 0.001,
+# and coordinates want full precision anyway.
 _COORDINATE_SELECTOR = NumberSelector(
-    NumberSelectorConfig(min=-180, max=180, step=0.000001, mode=NumberSelectorMode.BOX)
+    NumberSelectorConfig(min=-180, max=180, step="any", mode=NumberSelectorMode.BOX)
 )
 
 # Leave empty to publish binary_sensor.spotbuddy_running only and automate it yourself.

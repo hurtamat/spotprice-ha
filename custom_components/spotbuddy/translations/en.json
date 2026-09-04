@@ -69,6 +69,12 @@
           "yellow": "Average",
           "red": "Expensive"
         }
+      },
+      "next_start": {
+        "name": "Next start"
+      },
+      "next_end": {
+        "name": "Next end"
       }
     },
     "switch": {
