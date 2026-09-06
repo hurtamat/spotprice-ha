@@ -13,6 +13,7 @@ from .const import (
     DOMAIN,
     ENTITY_KEY_CONTINUOUS_SWITCH,
     ENTITY_KEY_ENABLED_SWITCH,
+    ENTITY_KEY_UNAVAILABLE_SWITCH,
     SWITCH,
 )
 from .coordinator import SpotBuddyCoordinator
@@ -28,6 +29,7 @@ async def async_setup_entry(hass: HomeAssistant, entry, async_add_devices) -> No
         [
             SpotBuddySwitchEnabled(entry, coordinator),
             SpotBuddySwitchContinuous(entry, coordinator),
+            SpotBuddySwitchUnavailableWindow(entry, coordinator),
         ]
     )
 
@@ -88,3 +90,14 @@ class SpotBuddySwitchContinuous(SpotBuddySwitch):
 
     def _push_to_coordinator(self) -> None:
         self.coordinator.continuous_block = bool(self.is_on)
+
+
+class SpotBuddySwitchUnavailableWindow(SpotBuddySwitch):
+    """Whether the do-not-run window applies. Off ⇒ the two times are ignored."""
+
+    _entity_key = ENTITY_KEY_UNAVAILABLE_SWITCH
+    _attr_entity_category = EntityCategory.CONFIG
+    _default_on = False
+
+    def _push_to_coordinator(self) -> None:
+        self.coordinator.unavailable_enabled = bool(self.is_on)

@@ -9,7 +9,12 @@ from typing import Any
 
 import aiohttp
 
-from .const import API_TIMEOUT_SECONDS, SCHEDULE_PATH, ZONES_PATH
+from .const import (
+    API_TIMEOUT_SECONDS,
+    SCHEDULE_PATH,
+    ZONE_RESOLVE_PATH,
+    ZONES_PATH,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -84,6 +89,21 @@ class SpotBuddyApiClient:
             raise SpotBuddyApiError(f"Timeout calling {url}") from err
         except aiohttp.ClientError as err:
             raise SpotBuddyApiError(f"Cannot reach {url}: {err}") from err
+
+    async def async_resolve_zone(self, *, latitude: float, longitude: float) -> str | None:
+        """The zone code covering these coordinates, or None if the backend cannot say."""
+        url = f"{self._base_url}{ZONE_RESOLVE_PATH}"
+        params = {"lat": str(latitude), "lon": str(longitude)}
+
+        try:
+            async with asyncio.timeout(API_TIMEOUT_SECONDS):
+                response = await self._session.get(url, params=params)
+                if response.status >= 400:
+                    return None
+                body = await response.json()
+                return body.get("code")
+        except (TimeoutError, aiohttp.ClientError):
+            return None
 
     async def _async_post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         """POST JSON and return the parsed body, or raise SpotBuddyApiError."""

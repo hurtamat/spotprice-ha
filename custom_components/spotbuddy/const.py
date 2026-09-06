@@ -28,13 +28,13 @@ PLATFORMS = [BINARY_SENSOR, SENSOR, NUMBER, SWITCH, TIME, BUTTON]
 
 # Entity keys
 ENTITY_KEY_RUNNING = "running"
-ENTITY_KEY_STATUS = "status"
 ENTITY_KEY_PRICE = "price"
 ENTITY_KEY_PRICE_LEVEL = "price_level"
 ENTITY_KEY_NEXT_START = "next_start"
 ENTITY_KEY_NEXT_END = "next_end"
 ENTITY_KEY_ENABLED_SWITCH = "enabled"
 ENTITY_KEY_CONTINUOUS_SWITCH = "continuous_block"
+ENTITY_KEY_UNAVAILABLE_SWITCH = "unavailable_window"
 ENTITY_KEY_DURATION_NUMBER = "duration_hours"
 ENTITY_KEY_READY_BY_TIME = "ready_by"
 ENTITY_KEY_UNAVAILABLE_FROM_TIME = "unavailable_from"
@@ -48,14 +48,6 @@ CONF_ZONE_CODE = "zone_code"
 # Optional: an entity SpotBuddy switches directly, so no automation is needed.
 CONF_CONTROLLED_SWITCH = "controlled_switch"
 
-# Status sensor states. Kept as slugs so automations are language-independent.
-STATUS_DISABLED = "disabled"
-STATUS_WAITING_FOR_PLAN = "waiting_for_plan"
-STATUS_NO_PLAN = "no_plan"
-STATUS_WAITING_TO_START = "waiting_to_start"
-STATUS_RUNNING = "running"
-STATUS_UNAVAILABLE = "backend_unavailable"
-
 # Price levels, mirroring the backend PriceQuantile enum (0/1/2).
 PRICE_LEVELS = ["green", "yellow", "red"]
 
@@ -68,6 +60,7 @@ CARD_URL = f"/{DOMAIN}/{CARD_FILENAME}"
 SCHEDULE_PATH = "/api/homeassistant/schedule"
 # The zone list, which the config flow turns into a dropdown. Doubles as the reachability probe.
 ZONES_PATH = "/api/zones"
+ZONE_RESOLVE_PATH = "/api/zones/resolve"
 API_TIMEOUT_SECONDS = 30
 
 # Defaults

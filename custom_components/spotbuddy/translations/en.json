@@ -41,17 +41,6 @@
       }
     },
     "sensor": {
-      "status": {
-        "name": "Status",
-        "state": {
-          "disabled": "Disabled",
-          "waiting_for_plan": "Waiting for plan",
-          "no_plan": "No plan",
-          "waiting_to_start": "Waiting to start",
-          "running": "Running",
-          "backend_unavailable": "Backend unavailable"
-        }
-      },
       "price": {
         "name": "Current price"
       },
@@ -76,6 +65,9 @@
       },
       "continuous_block": {
         "name": "Continuous block"
+      },
+      "unavailable_window": {
+        "name": "Use unavailable window"
       }
     },
     "number": {

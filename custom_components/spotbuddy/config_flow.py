@@ -61,6 +61,8 @@ class SpotBuddyFlowMixin:
     _url_failed: bool = False
     # Zone code -> name, fetched from the backend during validation.
     _zones: dict[str, str]
+    # The zone the backend picks for Home Assistant's own coordinates.
+    _suggested_zone: str | None = None
 
     def _url_visible(self, entry_url: str | None = None) -> bool:
         """Whether to render the backend URL field at all."""
@@ -94,7 +96,10 @@ class SpotBuddyFlowMixin:
         fields[
             vol.Required(
                 CONF_ZONE_CODE,
-                description={"suggested_value": defaults.get(CONF_ZONE_CODE) or None},
+                description={
+                    "suggested_value": defaults.get(CONF_ZONE_CODE)
+                    or self._suggested_zone
+                },
             )
         ] = self._zone_selector()
         fields[
@@ -115,7 +120,9 @@ class SpotBuddyFlowMixin:
                     for code, name in sorted(self._zones.items(), key=lambda kv: kv[1])
                 ],
                 mode=SelectSelectorMode.DROPDOWN,
-                custom_value=True,
+                # No custom_value: it turns the dropdown into a free-text box that shows
+                # the raw EIC code instead of the zone name.
+                sort=False,
             )
         )
 
@@ -127,6 +134,10 @@ class SpotBuddyFlowMixin:
             for zone in await client.async_get_zones()
             if zone.get("code")
         }
+        # Home Assistant knows where the house is, so the right zone is a guess we can make.
+        self._suggested_zone = await client.async_resolve_zone(
+            latitude=self.hass.config.latitude, longitude=self.hass.config.longitude
+        )
 
     async def _async_validate(self, user_input: dict[str, Any]) -> dict[str, Any]:
         """Check the input and that the backend answers, filling self._errors.

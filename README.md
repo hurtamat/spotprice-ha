@@ -76,7 +76,6 @@ One config entry drives one appliance. Add the integration a second time for a s
 | Entity | Description |
 | --- | --- |
 | `binary_sensor.spotbuddy_running` | **The one that matters.** On during the cheap hours it picked. Attributes carry the zone and the full block list. |
-| `sensor.spotbuddy_status` | `disabled`, `waiting_for_plan`, `no_plan`, `waiting_to_start`, `running`, `backend_unavailable` |
 | `sensor.spotbuddy_current_price` | EUR/MWh for the current slot. The `curve` attribute holds today and tomorrow. Click it for a price history graph - no extra cards needed. |
 | `sensor.spotbuddy_next_start` | When the cheap hours next begin, shown in your own timezone ("in 4 hours"). |
 | `sensor.spotbuddy_next_end` | When the current run ends, or the next one would. |
@@ -89,7 +88,8 @@ One config entry drives one appliance. Add the integration a second time for a s
 | `number.spotbuddy_duration` | Hours of power the appliance needs |
 | `time.spotbuddy_ready_by` | The deadline it must finish by |
 | `switch.spotbuddy_continuous_block` | One unbroken run, or split for the absolute cheapest hours |
-| `time.spotbuddy_unavailable_from` / `_to` | An optional do-not-run window |
+| `switch.spotbuddy_unavailable_window` | Whether the do-not-run window below applies |
+| `time.spotbuddy_unavailable_from` / `_to` | The do-not-run window, used only while that switch is on |
 | `switch.spotbuddy_enabled` | Master off switch |
 | `button.spotbuddy_refresh_plan` | Fetch the plan again now |
 

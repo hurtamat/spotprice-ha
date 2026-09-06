@@ -16,18 +16,11 @@ from .const import (
     ENTITY_KEY_NEXT_START,
     ENTITY_KEY_PRICE,
     ENTITY_KEY_PRICE_LEVEL,
-    ENTITY_KEY_STATUS,
     ICON_CASH,
     ICON_START,
     ICON_STOP,
     PRICE_LEVELS,
     SENSOR,
-    STATUS_DISABLED,
-    STATUS_NO_PLAN,
-    STATUS_RUNNING,
-    STATUS_UNAVAILABLE,
-    STATUS_WAITING_FOR_PLAN,
-    STATUS_WAITING_TO_START,
 )
 from .coordinator import SpotBuddyCoordinator
 from .entity import SpotBuddyCoordinatorEntity
@@ -40,7 +33,6 @@ async def async_setup_entry(hass: HomeAssistant, entry, async_add_devices) -> No
     coordinator: SpotBuddyCoordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_devices(
         [
-            SpotBuddySensorStatus(entry, coordinator),
             SpotBuddySensorPrice(entry, coordinator),
             SpotBuddySensorPriceLevel(entry, coordinator),
             SpotBuddySensorNextStart(entry, coordinator),
@@ -53,26 +45,6 @@ class SpotBuddySensor(SpotBuddyCoordinatorEntity, SensorEntity):
     """Base sensor."""
 
     _platform = SENSOR
-
-
-class SpotBuddySensorStatus(SpotBuddySensor):
-    """What the integration is currently doing."""
-
-    _entity_key = ENTITY_KEY_STATUS
-    _attr_device_class = SensorDeviceClass.ENUM
-    _attr_options = [
-        STATUS_DISABLED,
-        STATUS_WAITING_FOR_PLAN,
-        STATUS_NO_PLAN,
-        STATUS_WAITING_TO_START,
-        STATUS_RUNNING,
-        STATUS_UNAVAILABLE,
-    ]
-
-    @property
-    def native_value(self) -> str:
-        """The status slug."""
-        return self.coordinator.status
 
 
 class SpotBuddySensorPrice(SpotBuddySensor):

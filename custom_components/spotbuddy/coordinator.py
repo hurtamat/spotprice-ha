@@ -31,12 +31,6 @@ from .const import (
     PLAN_REFRESH_HOURS_UTC,
     PLAN_REFRESH_MINUTE,
     PRICE_LEVELS,
-    STATUS_DISABLED,
-    STATUS_NO_PLAN,
-    STATUS_RUNNING,
-    STATUS_UNAVAILABLE,
-    STATUS_WAITING_FOR_PLAN,
-    STATUS_WAITING_TO_START,
 )
 from .helpers.general import get_parameter
 
@@ -141,6 +135,7 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
         self.continuous_block: bool = False
         self.duration_hours: float = DEFAULT_DURATION_HOURS
         self.ready_by: time | None = dt_util.parse_time(DEFAULT_READY_BY)
+        self.unavailable_enabled: bool = False
         self.unavailable_from: time | None = None
         self.unavailable_to: time | None = None
 
@@ -179,8 +174,8 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
                 ready_by_utc=deadline,
                 duration_hours=self.duration_hours,
                 continuous_block=self.continuous_block,
-                unavailable_from=self._to_utc_time(self.unavailable_from, anchor_date),
-                unavailable_to=self._to_utc_time(self.unavailable_to, anchor_date),
+                unavailable_from=self._to_utc_time(self._unavailable_from, anchor_date),
+                unavailable_to=self._to_utc_time(self._unavailable_to, anchor_date),
             )
         except SpotBuddyAuthError as err:
             # Sends the user to the reconfigure flow rather than retrying forever.
@@ -206,6 +201,16 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
         if self.ready_by is None:
             return None
         return self._as_utc(self._target_local_date(), self.ready_by)
+
+    @property
+    def _unavailable_from(self) -> time | None:
+        """The window's start, or None while the window switch is off."""
+        return self.unavailable_from if self.unavailable_enabled else None
+
+    @property
+    def _unavailable_to(self) -> time | None:
+        """The window's end, or None while the window switch is off."""
+        return self.unavailable_to if self.unavailable_enabled else None
 
     def _to_utc_time(self, value: time | None, on_date: date) -> time | None:
         """A local time-of-day as UTC, using the offset on that date."""
@@ -355,26 +360,6 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
         if not self.enabled or self.data is None:
             return False
         return self.data.block_at(dt_util.utcnow()) is not None
-
-    @property
-    def status(self) -> str:
-        """A coarse, language-independent state for automations."""
-        if not self.enabled:
-            return STATUS_DISABLED
-
-        if not self.last_update_success:
-            return STATUS_UNAVAILABLE
-
-        plan = self.data
-        if plan is None or plan.fetched_at is None:
-            return STATUS_WAITING_FOR_PLAN
-
-        now = dt_util.utcnow()
-        if plan.block_at(now) is not None:
-            return STATUS_RUNNING
-        if plan.next_block(now) is not None:
-            return STATUS_WAITING_TO_START
-        return STATUS_NO_PLAN
 
     @property
     def plan_age(self) -> timedelta | None:
