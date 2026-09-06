@@ -22,7 +22,6 @@ from homeassistant.util import dt as dt_util
 
 from .api import SpotBuddyApiClient, SpotBuddyApiError, SpotBuddyAuthError
 from .const import (
-    CONF_API_KEY,
     CONF_BASE_URL,
     CONF_CONTROLLED_SWITCH,
     CONF_LATITUDE,
@@ -137,10 +136,11 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
         self.controlled_switch: str | None = (
             get_parameter(config_entry, CONF_CONTROLLED_SWITCH, "") or None
         )
+        # No API key yet: the backend is protected by rate limiting rather than a
+        # per-user credential. The client still handles a 401/403, so adding one later
+        # is a config-flow field and nothing else.
         self.client = SpotBuddyApiClient(
-            async_get_clientsession(hass),
-            self.base_url,
-            get_parameter(config_entry, CONF_API_KEY, "") or None,
+            async_get_clientsession(hass), self.base_url, None
         )
 
         # Task settings, owned by the config entities and restored by them on

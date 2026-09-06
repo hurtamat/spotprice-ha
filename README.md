@@ -11,7 +11,7 @@ Keep your electricity supplier, keep your devices. No hardware to buy.
 ## Requirements
 
 - Home Assistant 2024.4 or newer
-- A SpotBuddy backend URL and API key
+- A SpotBuddy backend URL
 - [HACS](https://hacs.xyz/) for the easy install path
 
 ## Installation
@@ -40,8 +40,6 @@ Everything is configured in the UI. The dialog asks for:
 
 | Field | Required | Meaning |
 | --- | --- | --- |
-| Backend URL | yes | Where your SpotBuddy API lives |
-| API key | yes | Sent as `X-Api-Key` |
 | Latitude / Longitude | yes | Pre-filled from Home Assistant's own location; decides which bidding zone your prices come from |
 | Controlled switch | no | Pick a switch and SpotBuddy turns it on and off for you. Leave it empty to drive things from your own automations instead. |
 
@@ -49,6 +47,25 @@ Everything is configured in the UI. The dialog asks for:
 block starts and off when it ends — no automation, no YAML. It only acts when the entity's state
 differs from what the plan wants, so if you flip it by hand it stays flipped until the next
 15-minute boundary.
+
+## Troubleshooting
+
+**"Could not reach the SpotBuddy backend"** during setup. SpotBuddy talks to our hosted
+backend, so this normally means Home Assistant has no outbound internet access - check
+that first. When the message appears, a **Backend URL** field is added to the form: use it
+if you run your own backend, or if you were told a different address. The field then stays
+available under **Configure** so you can change it back.
+
+Once an entry points at a custom backend the field stays visible under **Configure**, so
+the override can always be changed or undone.
+
+**The card shows "No price curve yet."** The integration has no plan yet. Press
+**Refresh plan** on the device page. If it stays empty, the backend has no prices stored
+for your zone yet; tomorrow's prices only publish in the early afternoon.
+
+**Nothing switches on.** Check that **Controlled switch** points at a switch that still
+exists - a renamed or removed device leaves a dead reference, and SpotBuddy logs
+`Controlled entity ... does not exist` every 15 minutes.
 
 ## Entities
 
@@ -75,6 +92,48 @@ One config entry drives one appliance. Add the integration a second time for a s
 | `time.spotbuddy_unavailable_from` / `_to` | An optional do-not-run window |
 | `switch.spotbuddy_enabled` | Master off switch |
 | `button.spotbuddy_refresh_plan` | Fetch the plan again now |
+
+## The chart
+
+SpotBuddy ships its own Lovelace card, so there is nothing extra to install. Edit a dashboard,
+**+ Add card**, search **SpotBuddy**, and pick your Running sensor:
+
+```yaml
+type: custom:spotbuddy-card
+entity: binary_sensor.spotbuddy_running
+```
+
+It draws the day-ahead prices coloured cheap/average/expensive, shades every hour SpotBuddy
+plans to run - several separate bands when the hours are split rather than continuous - and
+marks now. Times are shown in your own timezone. One card per appliance: point each at that
+appliance's Running sensor.
+
+If the card does not appear after an update, hard-refresh the browser (Ctrl+Shift+R) to drop
+the cached copy.
+
+### Using another chart card instead
+
+`binary_sensor.spotbuddy_running` also exposes `schedule`, an on/off step series, next to the
+raw `blocks`. With [ApexCharts Card](https://github.com/RomRider/apexcharts-card):
+
+```yaml
+type: custom:apexcharts-card
+graph_span: 2d
+span:
+  start: day
+series:
+  - entity: sensor.spotbuddy_current_price
+    name: Price
+    type: column
+    data_generator: |
+      return entity.attributes.curve.map(p => [new Date(p.start_utc), p.eur_per_mwh]);
+  - entity: binary_sensor.spotbuddy_running
+    name: Running
+    type: area
+    curve: stepline
+    data_generator: |
+      return entity.attributes.schedule.map(p => [new Date(p.start), p.value]);
+```
 
 ## Using it without a controlled switch
 

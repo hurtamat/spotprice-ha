@@ -39,15 +39,32 @@ class SpotBuddyBinarySensorRunning(SpotBuddyCoordinatorEntity, BinarySensorEntit
         if plan is None:
             return {}
 
+        blocks = [
+            {
+                "start_utc": block.start_utc.isoformat(),
+                "end_utc": block.end_utc.isoformat(),
+                "eur_per_mwh": block.eur_per_mwh,
+            }
+            for block in plan.blocks
+        ]
+
         return {
             "zone_name": plan.zone_name,
             "scheduled": plan.scheduled,
-            "blocks": [
-                {
-                    "start_utc": block.start_utc.isoformat(),
-                    "end_utc": block.end_utc.isoformat(),
-                    "eur_per_mwh": block.eur_per_mwh,
-                }
-                for block in plan.blocks
-            ],
+            "blocks": blocks,
+            "schedule": _as_step_series(plan.blocks),
         }
+
+
+def _as_step_series(blocks) -> list[dict]:
+    """The same blocks as an on/off step series: [{"start": ..., "value": 0 | 1}, ...].
+
+    The bundled card reads `blocks` directly, but every charting card wants a series it
+    can draw as a stepline, and building that from start/end pairs in card YAML is
+    painful. Each block contributes a 1 at its start and a 0 at its end.
+    """
+    series = []
+    for block in blocks:
+        series.append({"start": block.start_utc.isoformat(), "value": 1})
+        series.append({"start": block.end_utc.isoformat(), "value": 0})
+    return series

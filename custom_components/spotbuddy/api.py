@@ -9,7 +9,9 @@ from typing import Any
 
 import aiohttp
 
-from .const import API_TIMEOUT_SECONDS, SCHEDULE_PATH
+from homeassistant.util import dt as dt_util
+
+from .const import API_TIMEOUT_SECONDS, SCHEDULE_PATH, STATUS_PATH
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -73,6 +75,33 @@ class SpotBuddyApiClient:
             }
 
         return await self._async_post(SCHEDULE_PATH, payload)
+
+    async def async_check_connection(self, *, latitude: float, longitude: float) -> None:
+        """Raise SpotBuddyApiError unless the backend answers.
+
+        Used by the config flow. Any HTTP answer counts as reachable - a 204 means the
+        zone simply has no colour right now, which still proves the URL is right.
+        """
+        url = f"{self._base_url}{STATUS_PATH}"
+        params = {
+            "lat": str(latitude),
+            "lon": str(longitude),
+            "time": dt_util.utcnow().isoformat(),
+        }
+
+        try:
+            async with asyncio.timeout(API_TIMEOUT_SECONDS):
+                response = await self._session.get(url, params=params)
+                if response.status in (401, 403):
+                    raise SpotBuddyAuthError(
+                        f"Backend rejected the request ({response.status})"
+                    )
+                if response.status >= 500:
+                    raise SpotBuddyApiError(f"{url} returned {response.status}")
+        except TimeoutError as err:
+            raise SpotBuddyApiError(f"Timeout calling {url}") from err
+        except aiohttp.ClientError as err:
+            raise SpotBuddyApiError(f"Cannot reach {url}: {err}") from err
 
     async def _async_post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         """POST JSON and return the parsed body, or raise SpotBuddyApiError."""

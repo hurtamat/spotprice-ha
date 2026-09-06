@@ -6,6 +6,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceRegistry
+from homeassistant.helpers.device_registry import async_entries_for_config_entry
 from homeassistant.helpers.device_registry import async_get as async_device_registry_get
 
 from ..const import DOMAIN, NAME
@@ -28,11 +29,15 @@ class DeviceNameCreator:
     @staticmethod
     def create(hass: HomeAssistant) -> str:
         """Return NAME, or NAME with the next free number appended."""
+        # Walk our own config entries rather than the whole registry: treating
+        # `device_registry.devices` as a mapping is deprecated, and this asks the
+        # narrower question anyway.
         device_registry: DeviceRegistry = async_device_registry_get(hass)
         our_devices = []
-        for device in device_registry.devices.values():
-            if any(identifier[0] == DOMAIN for identifier in device.identifiers):
-                our_devices.append(device)
+        for entry in hass.config_entries.async_entries(DOMAIN):
+            our_devices.extend(
+                async_entries_for_config_entry(device_registry, entry.entry_id)
+            )
 
         if not our_devices:
             return NAME

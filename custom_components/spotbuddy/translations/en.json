@@ -3,22 +3,18 @@
     "step": {
       "user": {
         "title": "SpotBuddy",
-        "description": "Connect to your SpotBuddy backend. The coordinates default to your Home Assistant location and decide which bidding zone your prices come from.",
         "data": {
           "device_name": "Name",
           "base_url": "Backend URL",
-          "api_key": "API key",
           "latitude": "Latitude",
           "longitude": "Longitude",
           "controlled_switch": "Controlled switch (optional)"
-        },
-        "data_description": {
-          "controlled_switch": "Pick a switch and SpotBuddy turns it on and off for you, so you need no automation. Leave empty to use binary_sensor.spotbuddy_running in your own automations instead."
         }
       }
     },
     "error": {
-      "invalid_url": "The backend URL must start with http:// or https://"
+      "invalid_url": "The backend URL must start with http:// or https://",
+      "cannot_connect": "Could not reach the SpotBuddy backend. Check that Home Assistant has internet access, then try again - you can also enter a different backend URL below."
     }
   },
   "options": {
@@ -27,18 +23,15 @@
         "title": "SpotBuddy",
         "data": {
           "base_url": "Backend URL",
-          "api_key": "API key",
           "latitude": "Latitude",
           "longitude": "Longitude",
           "controlled_switch": "Controlled switch (optional)"
-        },
-        "data_description": {
-          "controlled_switch": "Pick a switch and SpotBuddy turns it on and off for you, so you need no automation. Leave empty to use binary_sensor.spotbuddy_running in your own automations instead."
         }
       }
     },
     "error": {
-      "invalid_url": "The backend URL must start with http:// or https://"
+      "invalid_url": "The backend URL must start with http:// or https://",
+      "cannot_connect": "Could not reach the SpotBuddy backend. Check that Home Assistant has internet access, then try again - you can also enter a different backend URL below."
     }
   },
   "entity": {

@@ -5,7 +5,10 @@
     "@hurtamat"
   ],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": [
+    "frontend",
+    "http"
+  ],
   "documentation": "https://github.com/hurtamat/spotprice-ha",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/hurtamat/spotprice-ha/issues",
