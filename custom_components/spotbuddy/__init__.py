@@ -32,9 +32,7 @@ _LOGGER: logging.Logger = logging.getLogger(__package__)
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Serve the bundled Lovelace card, once per Home Assistant start."""
     await hass.http.async_register_static_paths(
-        [
-            StaticPathConfig(CARD_URL, hass.config.path(CARD_SOURCE_PATH), True)
-        ]
+        [StaticPathConfig(CARD_URL, hass.config.path(CARD_SOURCE_PATH), True)]
     )
     # The version query busts the browser cache on update.
     frontend.add_extra_js_url(hass, f"{CARD_URL}?v={VERSION}")

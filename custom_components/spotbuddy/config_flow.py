@@ -84,14 +84,14 @@ class SpotBuddyFlowMixin:
         fields: dict[Any, Any] = {}
 
         if with_name:
-            fields[vol.Required(CONF_DEVICE_NAME, default=defaults[CONF_DEVICE_NAME])] = (
-                TextSelector()
-            )
+            fields[
+                vol.Required(CONF_DEVICE_NAME, default=defaults[CONF_DEVICE_NAME])
+            ] = TextSelector()
 
         if self._url_visible(defaults.get(CONF_BASE_URL)):
-            fields[
-                vol.Required(CONF_BASE_URL, default=defaults[CONF_BASE_URL])
-            ] = TextSelector(TextSelectorConfig(type=TextSelectorType.URL))
+            fields[vol.Required(CONF_BASE_URL, default=defaults[CONF_BASE_URL])] = (
+                TextSelector(TextSelectorConfig(type=TextSelectorType.URL))
+            )
 
         fields[
             vol.Required(
@@ -203,9 +203,7 @@ class SpotBuddyConfigFlow(SpotBuddyFlowMixin, config_entries.ConfigFlow, domain=
         else:
             data = await self._async_validate(user_input)
             if not self._errors:
-                return self.async_create_entry(
-                    title=data[CONF_DEVICE_NAME], data=data
-                )
+                return self.async_create_entry(title=data[CONF_DEVICE_NAME], data=data)
             # Keep what the user typed, so a retry does not start over.
             defaults.update(data)
 

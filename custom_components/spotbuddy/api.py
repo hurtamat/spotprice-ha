@@ -58,7 +58,9 @@ class SpotBuddyApiClient:
             "zone_code": zone_code,
             "duration_hours": duration_hours,
             # Null ⇒ the backend schedules against the next 24h.
-            "ready_by_utc": ready_by_utc.isoformat() if ready_by_utc is not None else None,
+            "ready_by_utc": (
+                ready_by_utc.isoformat() if ready_by_utc is not None else None
+            ),
             "continuous_block": continuous_block,
         }
 
@@ -90,7 +92,9 @@ class SpotBuddyApiClient:
         except aiohttp.ClientError as err:
             raise SpotBuddyApiError(f"Cannot reach {url}: {err}") from err
 
-    async def async_resolve_zone(self, *, latitude: float, longitude: float) -> str | None:
+    async def async_resolve_zone(
+        self, *, latitude: float, longitude: float
+    ) -> str | None:
         """The zone code covering these coordinates, or None if the backend cannot say."""
         url = f"{self._base_url}{ZONE_RESOLVE_PATH}"
         params = {"lat": str(latitude), "lon": str(longitude)}
