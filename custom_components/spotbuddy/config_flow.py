@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
 import logging
 from typing import Any
 
@@ -14,9 +15,10 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     EntitySelector,
     EntitySelectorConfig,
-    NumberSelector,
-    NumberSelectorConfig,
-    NumberSelectorMode,
+    SelectOptionDict,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,
@@ -27,20 +29,13 @@ from .const import (
     CONF_BASE_URL,
     CONF_CONTROLLED_SWITCH,
     CONF_DEVICE_NAME,
-    CONF_LATITUDE,
-    CONF_LONGITUDE,
+    CONF_ZONE_CODE,
     DEFAULT_BASE_URL,
     DOMAIN,
 )
 from .helpers.general import DeviceNameCreator, get_parameter
 
 _LOGGER = logging.getLogger(__name__)
-
-# step="any" rather than a small float: Home Assistant rejects a step below 0.001,
-# and coordinates want full precision anyway.
-_COORDINATE_SELECTOR = NumberSelector(
-    NumberSelectorConfig(min=-180, max=180, step="any", mode=NumberSelectorMode.BOX)
-)
 
 # Leave empty to publish binary_sensor.spotbuddy_running only and automate it yourself.
 _CONTROLLED_SWITCH_SELECTOR = EntitySelector(
@@ -56,23 +51,20 @@ def _is_url(value: str) -> bool:
 class SpotBuddyFlowMixin:
     """Form building and validation shared by the config and options flows.
 
-    The backend URL is a constant, not a question: the hosted backend is the same for
-    everyone. It only becomes a field once a connection has failed and the user needs a
-    way out, or when an entry already points somewhere custom.
-
-    Home Assistant's Advanced Mode is deliberately not used as the trigger: it is on by
-    default for admin users, and everyone setting up an integration is an admin, so it
-    would show the field to everybody.
+    The backend URL is a constant, not a question. It becomes a field only after a failed
+    connection, or when an entry already points somewhere custom. Not gated on Advanced
+    Mode: that is on by default for admins, so it would show the field to everybody.
     """
 
     _errors: dict[str, str]
     # Set after a failed connection, so the URL field appears on the retry.
     _url_failed: bool = False
+    # Zone code -> name, fetched from the backend during validation.
+    _zones: dict[str, str]
 
     def _url_visible(self, entry_url: str | None = None) -> bool:
         """Whether to render the backend URL field at all."""
-        # An entry already pointing somewhere custom keeps its field, or the user could
-        # never undo the override.
+        # An override has to stay editable, or it could never be undone.
         overridden = entry_url is not None and entry_url != DEFAULT_BASE_URL
         visible = self._url_failed or overridden
         _LOGGER.debug(
@@ -99,12 +91,12 @@ class SpotBuddyFlowMixin:
                 vol.Required(CONF_BASE_URL, default=defaults[CONF_BASE_URL])
             ] = TextSelector(TextSelectorConfig(type=TextSelectorType.URL))
 
-        fields[vol.Required(CONF_LATITUDE, default=defaults[CONF_LATITUDE])] = (
-            _COORDINATE_SELECTOR
-        )
-        fields[vol.Required(CONF_LONGITUDE, default=defaults[CONF_LONGITUDE])] = (
-            _COORDINATE_SELECTOR
-        )
+        fields[
+            vol.Required(
+                CONF_ZONE_CODE,
+                description={"suggested_value": defaults.get(CONF_ZONE_CODE) or None},
+            )
+        ] = self._zone_selector()
         fields[
             vol.Optional(
                 CONF_CONTROLLED_SWITCH,
@@ -114,11 +106,32 @@ class SpotBuddyFlowMixin:
 
         return vol.Schema(fields)
 
-    async def _async_validate(self, user_input: dict[str, Any]) -> dict[str, Any]:
-        """Check the input and that the backend answers. Fills self._errors.
+    def _zone_selector(self) -> SelectSelector:
+        """A dropdown of the backend's zones, empty until the list has been fetched."""
+        return SelectSelector(
+            SelectSelectorConfig(
+                options=[
+                    SelectOptionDict(value=code, label=name)
+                    for code, name in sorted(self._zones.items(), key=lambda kv: kv[1])
+                ],
+                mode=SelectSelectorMode.DROPDOWN,
+                custom_value=True,
+            )
+        )
 
-        Returns the input with the effective backend URL filled in, since the field is
-        absent from the form in the normal case.
+    async def _async_load_zones(self, base_url: str) -> None:
+        """Fetch the zone list. Raises SpotBuddyApiError, which doubles as the reachability check."""
+        client = SpotBuddyApiClient(async_get_clientsession(self.hass), base_url, None)
+        self._zones = {
+            zone["code"]: zone.get("name", zone["code"])
+            for zone in await client.async_get_zones()
+            if zone.get("code")
+        }
+
+    async def _async_validate(self, user_input: dict[str, Any]) -> dict[str, Any]:
+        """Check the input and that the backend answers, filling self._errors.
+
+        Returns the input with the effective URL, which the form usually omits.
         """
         self._errors = {}
 
@@ -129,20 +142,17 @@ class SpotBuddyFlowMixin:
             self._errors[CONF_BASE_URL] = "invalid_url"
             return data
 
-        client = SpotBuddyApiClient(
-            async_get_clientsession(self.hass), str(data[CONF_BASE_URL]), None
-        )
         try:
-            await client.async_check_connection(
-                latitude=float(data[CONF_LATITUDE]),
-                longitude=float(data[CONF_LONGITUDE]),
-            )
+            await self._async_load_zones(str(data[CONF_BASE_URL]))
         except SpotBuddyApiError as err:
             _LOGGER.debug("Backend unreachable during setup: %s", err)
-            # Reveal the URL field on the retry, so a user with a self-hosted backend
-            # or a typo in the constant can point us somewhere else.
+            # Reveal the URL field on the retry, as a way out.
             self._url_failed = True
             self._errors["base"] = "cannot_connect"
+            return data
+
+        if data.get(CONF_ZONE_CODE) not in self._zones:
+            self._errors[CONF_ZONE_CODE] = "unknown_zone"
 
         return data
 
@@ -154,6 +164,7 @@ class SpotBuddyConfigFlow(SpotBuddyFlowMixin, config_entries.ConfigFlow, domain=
 
     def __init__(self) -> None:
         self._errors: dict[str, str] = {}
+        self._zones: dict[str, str] = {}
 
     @staticmethod
     @callback
@@ -170,12 +181,15 @@ class SpotBuddyConfigFlow(SpotBuddyFlowMixin, config_entries.ConfigFlow, domain=
         defaults = {
             CONF_DEVICE_NAME: DeviceNameCreator.create(self.hass),
             CONF_BASE_URL: DEFAULT_BASE_URL,
-            CONF_LATITUDE: self.hass.config.latitude,
-            CONF_LONGITUDE: self.hass.config.longitude,
+            CONF_ZONE_CODE: "",
             CONF_CONTROLLED_SWITCH: "",
         }
 
-        if user_input is not None:
+        if user_input is None:
+            # Populate the dropdown before the form is first shown.
+            with suppress(SpotBuddyApiError):
+                await self._async_load_zones(DEFAULT_BASE_URL)
+        else:
             data = await self._async_validate(user_input)
             if not self._errors:
                 return self.async_create_entry(
@@ -197,6 +211,7 @@ class SpotBuddyOptionsFlow(SpotBuddyFlowMixin, config_entries.OptionsFlow):
 
     def __init__(self) -> None:
         self._errors: dict[str, str] = {}
+        self._zones: dict[str, str] = {}
 
     async def async_step_init(self, user_input=None) -> FlowResult:
         """Manage the options."""
@@ -205,12 +220,14 @@ class SpotBuddyOptionsFlow(SpotBuddyFlowMixin, config_entries.OptionsFlow):
 
         defaults = {
             CONF_BASE_URL: get_parameter(entry, CONF_BASE_URL, DEFAULT_BASE_URL),
-            CONF_LATITUDE: get_parameter(entry, CONF_LATITUDE),
-            CONF_LONGITUDE: get_parameter(entry, CONF_LONGITUDE),
+            CONF_ZONE_CODE: get_parameter(entry, CONF_ZONE_CODE, ""),
             CONF_CONTROLLED_SWITCH: get_parameter(entry, CONF_CONTROLLED_SWITCH, ""),
         }
 
-        if user_input is not None:
+        if user_input is None:
+            with suppress(SpotBuddyApiError):
+                await self._async_load_zones(str(defaults[CONF_BASE_URL]))
+        else:
             # A form without the URL field must not silently reset a custom backend.
             merged = {CONF_BASE_URL: defaults[CONF_BASE_URL], **user_input}
             data = await self._async_validate(merged)

@@ -29,9 +29,7 @@ class DeviceNameCreator:
     @staticmethod
     def create(hass: HomeAssistant) -> str:
         """Return NAME, or NAME with the next free number appended."""
-        # Walk our own config entries rather than the whole registry: treating
-        # `device_registry.devices` as a mapping is deprecated, and this asks the
-        # narrower question anyway.
+        # Our own entries, not the whole registry: `devices` as a mapping is deprecated.
         device_registry: DeviceRegistry = async_device_registry_get(hass)
         our_devices = []
         for entry in hass.config_entries.async_entries(DOMAIN):

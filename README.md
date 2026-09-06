@@ -40,7 +40,7 @@ Everything is configured in the UI. The dialog asks for:
 
 | Field | Required | Meaning |
 | --- | --- | --- |
-| Latitude / Longitude | yes | Pre-filled from Home Assistant's own location; decides which bidding zone your prices come from |
+| Electricity zone | yes | Which day-ahead market your prices come from, picked from a list |
 | Controlled switch | no | Pick a switch and SpotBuddy turns it on and off for you. Leave it empty to drive things from your own automations instead. |
 
 **Setting a controlled switch is the whole setup.** SpotBuddy switches that entity on when a cheap

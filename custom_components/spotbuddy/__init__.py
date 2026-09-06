@@ -30,22 +30,13 @@ _LOGGER: logging.Logger = logging.getLogger(__package__)
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Serve the Lovelace card that ships with this integration.
-
-    Once per Home Assistant start, not per config entry: the module is registered
-    globally, and every card instance points at its own device.
-    """
+    """Serve the bundled Lovelace card, once per Home Assistant start."""
     await hass.http.async_register_static_paths(
         [
-            StaticPathConfig(
-                CARD_URL,
-                hass.config.path(CARD_SOURCE_PATH),
-                # Cache it; the version query below is what invalidates an old copy.
-                True,
-            )
+            StaticPathConfig(CARD_URL, hass.config.path(CARD_SOURCE_PATH), True)
         ]
     )
-    # Without the version the browser keeps a stale card across updates.
+    # The version query busts the browser cache on update.
     frontend.add_extra_js_url(hass, f"{CARD_URL}?v={VERSION}")
     _LOGGER.debug("Registered %s", CARD_URL)
     return True
@@ -69,9 +60,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # fetch happens once the platforms are up rather than before them.
     await coordinator.async_refresh()
 
-    # The controlled switch belongs to another integration, which during a cold start
-    # may not have created its entities yet. async_at_started fires straight away when
-    # Home Assistant is already running, so a reload still applies control at once.
+    # The controlled switch may not exist yet during a cold start. Fires at once if HA is up.
     async def _apply_when_started(_hass: HomeAssistant) -> None:
         await coordinator.async_apply_control()
 

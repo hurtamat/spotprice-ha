@@ -44,8 +44,7 @@ ENTITY_KEY_REFRESH_BUTTON = "refresh_plan"
 # Configuration keys
 CONF_DEVICE_NAME = "device_name"
 CONF_BASE_URL = "base_url"
-CONF_LATITUDE = "latitude"
-CONF_LONGITUDE = "longitude"
+CONF_ZONE_CODE = "zone_code"
 # Optional: an entity SpotBuddy switches directly, so no automation is needed.
 CONF_CONTROLLED_SWITCH = "controlled_switch"
 
@@ -60,23 +59,19 @@ STATUS_UNAVAILABLE = "backend_unavailable"
 # Price levels, mirroring the backend PriceQuantile enum (0/1/2).
 PRICE_LEVELS = ["green", "yellow", "red"]
 
-# The bundled Lovelace card. Served from the integration folder, so HACS ships it with
-# the integration and the user installs no frontend repository.
+# The bundled Lovelace card, shipped inside the integration so HACS carries it.
 CARD_FILENAME = "spotbuddy-card.js"
 CARD_SOURCE_PATH = f"custom_components/{DOMAIN}/www/{CARD_FILENAME}"
 CARD_URL = f"/{DOMAIN}/{CARD_FILENAME}"
 
 # Backend
 SCHEDULE_PATH = "/api/homeassistant/schedule"
-# Cheap reachability probe used by the config flow, so a wrong or unreachable backend
-# is reported in the dialog rather than as a failed refresh hours later.
-STATUS_PATH = "/api/schedule/status"
+# The zone list, which the config flow turns into a dropdown. Doubles as the reachability probe.
+ZONES_PATH = "/api/zones"
 API_TIMEOUT_SECONDS = 30
 
 # Defaults
-# The hosted backend. Users never see or type this: the config flow only offers a URL
-# field to users with Home Assistant's Advanced Mode on, or after a connection failed.
-# TODO: replace with the deployed host (`terraform output backend_url`).
+# TODO: the hosted backend; replace with `terraform output backend_url` before release.
 DEFAULT_BASE_URL = "http://host.docker.internal:5262"
 DEFAULT_DURATION_HOURS = 3.0
 DEFAULT_READY_BY = "06:00:00"

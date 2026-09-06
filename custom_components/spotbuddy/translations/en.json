@@ -6,15 +6,15 @@
         "data": {
           "device_name": "Name",
           "base_url": "Backend URL",
-          "latitude": "Latitude",
-          "longitude": "Longitude",
+          "zone_code": "Electricity zone",
           "controlled_switch": "Controlled switch (optional)"
         }
       }
     },
     "error": {
       "invalid_url": "The backend URL must start with http:// or https://",
-      "cannot_connect": "Could not reach the SpotBuddy backend. Check that Home Assistant has internet access, then try again - you can also enter a different backend URL below."
+      "cannot_connect": "Could not reach the SpotBuddy backend. Check that Home Assistant has internet access, then try again - you can also enter a different backend URL below.",
+      "unknown_zone": "Pick a zone from the list."
     }
   },
   "options": {
@@ -23,15 +23,15 @@
         "title": "SpotBuddy",
         "data": {
           "base_url": "Backend URL",
-          "latitude": "Latitude",
-          "longitude": "Longitude",
+          "zone_code": "Electricity zone",
           "controlled_switch": "Controlled switch (optional)"
         }
       }
     },
     "error": {
       "invalid_url": "The backend URL must start with http:// or https://",
-      "cannot_connect": "Could not reach the SpotBuddy backend. Check that Home Assistant has internet access, then try again - you can also enter a different backend URL below."
+      "cannot_connect": "Could not reach the SpotBuddy backend. Check that Home Assistant has internet access, then try again - you can also enter a different backend URL below.",
+      "unknown_zone": "Pick a zone from the list."
     }
   },
   "entity": {

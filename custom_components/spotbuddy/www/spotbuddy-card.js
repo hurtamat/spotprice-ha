@@ -1,18 +1,8 @@
-/**
- * SpotBuddy Lovelace card.
- *
- * The day-ahead price curve as bars coloured by price level, with every committed run
- * block shaded on top of it. A split (non-continuous) plan has several blocks, so the
- * shading is drawn per block rather than as one span.
- *
- * Plain custom element and inline SVG on purpose: the integration ships this file as-is,
- * so there is no bundler, no chart library and nothing to fetch at runtime.
- */
+// SpotBuddy Lovelace card: the price curve with each planned run block shaded on it.
 
 const CARD_TYPE = "spotbuddy-card";
 
-// Matches the backend's PriceColor slugs. Falls back to Home Assistant's own theme
-// variables so the card follows a user's dark or custom theme.
+// Theme variables, so the card follows the user's theme.
 const LEVEL_COLOR = {
   green: "var(--success-color, #2e9e5b)",
   yellow: "var(--warning-color, #e0a325)",
@@ -20,8 +10,7 @@ const LEVEL_COLOR = {
 };
 const UNCLASSIFIED_COLOR = "var(--disabled-text-color, #9a9a9a)";
 
-// The curve attribute carries the backend's PriceColor as an int (0 green, 1 yellow, 2 red),
-// while the price level sensor publishes the slug. Accept either.
+// The curve carries PriceColor as an int; the level sensor publishes a slug. Accept either.
 const LEVEL_BY_INDEX = ["green", "yellow", "red"];
 const levelColor = (level) =>
   LEVEL_COLOR[typeof level === "number" ? LEVEL_BY_INDEX[level] : level] ?? UNCLASSIFIED_COLOR;
@@ -31,13 +20,13 @@ const VIEW = { w: 600, h: 200, padTop: 8, padBottom: 22, padLeft: 34, padRight: 
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
-/** "HH:MM" in the viewer's own timezone. The wire is UTC; this is the only place it lands. */
+/** "HH:MM" in the viewer's own timezone; the wire is UTC. */
 function localTime(iso) {
   const d = new Date(iso);
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
-/** "Mon 04:00" for a moment far enough away that the hour alone is ambiguous. */
+/** "Mon 04:00", for when the hour alone is ambiguous. */
 function localDayTime(iso) {
   const d = new Date(iso);
   const day = d.toLocaleDateString(undefined, { weekday: "short" });
@@ -72,7 +61,7 @@ class SpotBuddyCard extends HTMLElement {
     return 5;
   }
 
-  /** Prefills the picker with the first SpotBuddy running sensor found, so the card works unconfigured. */
+  /** Prefills the picker, so the card works unconfigured. */
   static getStubConfig(hass) {
     const entity = Object.keys(hass.states).find(
       (id) => id.startsWith("binary_sensor.") && id.includes("spotbuddy") && id.endsWith("_running"),
@@ -80,12 +69,7 @@ class SpotBuddyCard extends HTMLElement {
     return { type: `custom:${CARD_TYPE}`, entity: entity ?? "" };
   }
 
-  /**
-   * The price sensor belonging to the same device as the configured binary sensor.
-   * One config entry is one appliance, so this is what keeps two appliances apart.
-   * `price_entity` in the config overrides it; the id-shaped guess is the last resort
-   * for installs where the frontend has no entity registry loaded.
-   */
+  /** The price sensor on the same device, which is what keeps two appliances apart. */
   _findPriceEntity() {
     if (this._config.price_entity) return this._config.price_entity;
 
@@ -138,7 +122,7 @@ class SpotBuddyCard extends HTMLElement {
     this.shadowRoot.innerHTML = this._shell(this._chart(curve, blocks), title, running);
   }
 
-  /** Card chrome: title, the next-start line, and whatever body is passed in. */
+  /** Card chrome: title, subtitle, body. */
   _shell(body, title = "SpotBuddy", running = null) {
     const zone = running?.attributes?.zone_name;
     const subtitle = this._subtitle(running);
@@ -168,7 +152,7 @@ class SpotBuddyCard extends HTMLElement {
     `;
   }
 
-  /** "Runs 02:00 - 05:00" / "Running until 05:00" / "Nothing planned", from the blocks themselves. */
+  /** "Running until 05:00" / "Starts 02:00" / "Nothing planned". */
   _subtitle(running) {
     if (!running) return "";
     const blocks = running.attributes?.blocks ?? [];
@@ -207,7 +191,7 @@ class SpotBuddyCard extends HTMLElement {
     const t0 = slots[0].start;
     const t1 = slots[slots.length - 1].end;
     const values = slots.map((s) => s.value).filter(Number.isFinite);
-    // Negative day-ahead prices happen, so the baseline is the lower of zero and the minimum.
+    // Negative prices happen, so the baseline is the lower of zero and the minimum.
     const vMin = Math.min(0, ...values);
     const vMax = Math.max(...values, vMin + 1);
 
@@ -217,13 +201,13 @@ class SpotBuddyCard extends HTMLElement {
     const y = (v) => VIEW.padTop + (1 - (v - vMin) / (vMax - vMin)) * plotH;
     const baseline = y(Math.max(vMin, 0));
 
-    // Run blocks first, so the bars sit on top of the shading rather than under it.
+    // Blocks first, so the bars sit on top of the shading.
     const blockShapes = (blocks ?? [])
       .map((b) => {
         const bs = Date.parse(b.start_utc);
         const be = Date.parse(b.end_utc);
         if (!Number.isFinite(bs) || !Number.isFinite(be)) return "";
-        // A block can start before the curve does, or run past its end; clip to the plot.
+        // Clip: a block can start before the curve or run past its end.
         const left = x(Math.max(bs, t0));
         const right = x(Math.min(be, t1));
         if (right <= left) return "";
@@ -305,7 +289,7 @@ if (!customElements.get(CARD_TYPE)) {
   customElements.define(CARD_TYPE, SpotBuddyCard);
 }
 
-// Puts the card in the "Add card" picker, so nobody has to write YAML by hand.
+// Puts the card in the "Add card" picker.
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: CARD_TYPE,

@@ -57,12 +57,7 @@ class SpotBuddyBinarySensorRunning(SpotBuddyCoordinatorEntity, BinarySensorEntit
 
 
 def _as_step_series(blocks) -> list[dict]:
-    """The same blocks as an on/off step series: [{"start": ..., "value": 0 | 1}, ...].
-
-    The bundled card reads `blocks` directly, but every charting card wants a series it
-    can draw as a stepline, and building that from start/end pairs in card YAML is
-    painful. Each block contributes a 1 at its start and a 0 at its end.
-    """
+    """The blocks as an on/off step series, which is what charting cards can draw."""
     series = []
     for block in blocks:
         series.append({"start": block.start_utc.isoformat(), "value": 1})

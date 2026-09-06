@@ -16,7 +16,7 @@ from homeassistant.const import SERVICE_TURN_OFF, SERVICE_TURN_ON, STATE_ON
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.event import async_track_time_change
+from homeassistant.helpers.event import async_track_utc_time_change
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
@@ -24,8 +24,7 @@ from .api import SpotBuddyApiClient, SpotBuddyApiError, SpotBuddyAuthError
 from .const import (
     CONF_BASE_URL,
     CONF_CONTROLLED_SWITCH,
-    CONF_LATITUDE,
-    CONF_LONGITUDE,
+    CONF_ZONE_CODE,
     DEFAULT_DURATION_HOURS,
     DEFAULT_READY_BY,
     DOMAIN,
@@ -74,7 +73,7 @@ class CurveSlot:
     level: str | None = None
 
     def contains(self, moment: datetime) -> bool:
-        """Whether moment falls inside this slot. Half-open, as on the backend."""
+        """Whether moment falls inside this slot."""
         return self.start_utc <= moment < self.end_utc
 
 
@@ -85,7 +84,7 @@ class SpotBuddyPlan:
     zone_name: str | None = None
     scheduled: bool = False
     blocks: list[ScheduledBlock] = field(default_factory=list)
-    # The raw curve, passed through to the price sensor's attribute for chart cards.
+    # Raw, for the price sensor's attribute; slots is the same data parsed.
     curve: list[dict] = field(default_factory=list)
     slots: list[CurveSlot] = field(default_factory=list)
     fetched_at: datetime | None = None
@@ -126,25 +125,18 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
         self.base_url: str = str(get_parameter(config_entry, CONF_BASE_URL, "")).rstrip(
             "/"
         )
-        self.latitude: float = float(
-            get_parameter(config_entry, CONF_LATITUDE, hass.config.latitude)
-        )
-        self.longitude: float = float(
-            get_parameter(config_entry, CONF_LONGITUDE, hass.config.longitude)
-        )
+        self.zone_code: str = str(get_parameter(config_entry, CONF_ZONE_CODE, ""))
         # Optional: an entity we drive directly, so the user needs no automation.
         self.controlled_switch: str | None = (
             get_parameter(config_entry, CONF_CONTROLLED_SWITCH, "") or None
         )
-        # No API key yet: the backend is protected by rate limiting rather than a
-        # per-user credential. The client still handles a 401/403, so adding one later
-        # is a config-flow field and nothing else.
+        # No API key yet; rate limiting instead. The client still handles a 401/403.
         self.client = SpotBuddyApiClient(
             async_get_clientsession(hass), self.base_url, None
         )
 
         # Task settings, owned by the config entities and restored by them on
-        # startup. These are the fields of one task in the schedule request.
+        # startup. These are the schedule request's own fields.
         self.enabled: bool = True
         self.continuous_block: bool = False
         self.duration_hours: float = DEFAULT_DURATION_HOURS
@@ -154,13 +146,13 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
 
         # Re-evaluate the relay on every 15-minute slot boundary.
         self.listeners.append(
-            async_track_time_change(
+            async_track_utc_time_change(
                 hass, self._async_tick, minute=[0, 15, 30, 45], second=0
             )
         )
-        # Re-fetch the plan after midnight and after the day-ahead prices publish.
+        # Re-fetch after midnight and after the prices publish. UTC: the local variant fired early.
         self.listeners.append(
-            async_track_time_change(
+            async_track_utc_time_change(
                 hass,
                 self._async_scheduled_refresh,
                 hour=PLAN_REFRESH_HOURS_UTC,
@@ -178,16 +170,17 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
     async def _async_update_data(self) -> SpotBuddyPlan:
         """Fetch the committed plan and the price curve from the backend."""
         try:
+            deadline = self._deadline_utc()
+            # The window ends at the deadline, so read the DST offset there, not today.
+            anchor_date = (deadline or dt_util.utcnow()).date()
             body = await self.client.async_get_schedule(
                 device_id=self.config_entry.entry_id,
-                latitude=self.latitude,
-                longitude=self.longitude,
-                for_date=self._target_date(),
+                zone_code=self.zone_code,
+                ready_by_utc=deadline,
                 duration_hours=self.duration_hours,
-                ready_by=self.ready_by,
                 continuous_block=self.continuous_block,
-                unavailable_from=self.unavailable_from,
-                unavailable_to=self.unavailable_to,
+                unavailable_from=self._to_utc_time(self.unavailable_from, anchor_date),
+                unavailable_to=self._to_utc_time(self.unavailable_to, anchor_date),
             )
         except SpotBuddyAuthError as err:
             # Sends the user to the reconfigure flow rather than retrying forever.
@@ -197,29 +190,40 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
 
         return self._parse_plan(body)
 
-    def _target_date(self) -> date:
-        """The day to schedule for.
-
-        The backend anchors the window on the deadline and looks back 24h, so
-        once today's deadline has passed the interesting plan is tomorrow's.
-        """
-        now = dt_util.utcnow()
+    def _target_local_date(self) -> date:
+        """The local day the deadline falls on. Past today's, it is tomorrow's."""
+        now = dt_util.now()
         today = now.date()
         if self.ready_by is not None and now.time() >= self.ready_by:
             return today + timedelta(days=1)
         return today
 
+    def _deadline_utc(self) -> datetime | None:
+        """The deadline as a UTC instant. None ⇒ the backend schedules against the next 24h.
+
+        We convert because only we know the user's timezone.
+        """
+        if self.ready_by is None:
+            return None
+        return self._as_utc(self._target_local_date(), self.ready_by)
+
+    def _to_utc_time(self, value: time | None, on_date: date) -> time | None:
+        """A local time-of-day as UTC, using the offset on that date."""
+        if value is None:
+            return None
+        return self._as_utc(on_date, value).time()
+
+    def _as_utc(self, on_date: date, at: time) -> datetime:
+        """The instant a local wall clock names. as_local reads naive times as local."""
+        return dt_util.as_utc(dt_util.as_local(datetime.combine(on_date, at)))
+
     def _parse_plan(self, body: dict) -> SpotBuddyPlan:
         """Map the response body onto a SpotBuddyPlan.
 
-        One config entry drives one appliance, so it always sends one task and
-        reads tasks[0] — the same single-task convention as the Shelly script.
+        One config entry drives one appliance, so the response is flat: one plan.
         """
-        tasks = body.get("tasks") or []
-        task = tasks[0] if tasks else {}
-
         blocks = []
-        for raw in task.get("blocks") or []:
+        for raw in body.get("blocks") or []:
             start = dt_util.parse_datetime(raw.get("start_utc") or "")
             end = dt_util.parse_datetime(raw.get("end_utc") or "")
             if start is None or end is None:
@@ -252,7 +256,7 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
 
         return SpotBuddyPlan(
             zone_name=body.get("zone_name"),
-            scheduled=bool(task.get("scheduled")),
+            scheduled=bool(body.get("scheduled")),
             blocks=sorted(blocks, key=lambda b: b.start_utc),
             curve=curve,
             slots=sorted(slots, key=lambda s: s.start_utc),
@@ -311,11 +315,9 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
 
     @property
     def current_price(self) -> float | None:
-        """Price for the slot happening now.
+        """Price for the slot happening now, read off the curve at every tick.
 
-        Read off the curve rather than anything computed at fetch time: the plan is
-        fetched twice a day, so a fetch-time value is stale within the hour. The
-        curve covers today and tomorrow, and the quarter-hourly tick re-reads it.
+        Anything computed at fetch time is stale within the hour: we fetch twice a day.
         """
         if self.data is None:
             return None
@@ -332,11 +334,7 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
 
     @property
     def next_start(self) -> datetime | None:
-        """When the appliance next switches on. None while nothing further is planned.
-
-        While a block is running this is the *following* block, which is what a split
-        (non-continuous) plan needs.
-        """
+        """When the appliance next switches on; the following block while one runs."""
         if not self.enabled or self.data is None:
             return None
         block = self.data.next_block(dt_util.utcnow())
@@ -344,7 +342,7 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
 
     @property
     def next_end(self) -> datetime | None:
-        """When the current run ends, or the next one would. None when nothing is planned."""
+        """When the current run ends, or the next one would."""
         if not self.enabled or self.data is None:
             return None
         now = dt_util.utcnow()

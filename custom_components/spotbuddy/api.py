@@ -3,15 +3,13 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import date as dt_date, time as dt_time
+from datetime import datetime, time as dt_time
 import logging
 from typing import Any
 
 import aiohttp
 
-from homeassistant.util import dt as dt_util
-
-from .const import API_TIMEOUT_SECONDS, SCHEDULE_PATH, STATUS_PATH
+from .const import API_TIMEOUT_SECONDS, SCHEDULE_PATH, ZONES_PATH
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,11 +40,9 @@ class SpotBuddyApiClient:
         self,
         *,
         device_id: str,
-        latitude: float,
-        longitude: float,
-        for_date: dt_date,
+        zone_code: str,
+        ready_by_utc: datetime | None,
         duration_hours: float,
-        ready_by: dt_time | None,
         continuous_block: bool,
         unavailable_from: dt_time | None = None,
         unavailable_to: dt_time | None = None,
@@ -54,17 +50,11 @@ class SpotBuddyApiClient:
         """Ask the backend for this device's plan. Returns the parsed body."""
         payload: dict[str, Any] = {
             "device_id": device_id,
-            "lat": latitude,
-            "lon": longitude,
-            "date": for_date.isoformat(),
-            "tasks": [
-                {
-                    "task_id": 1,
-                    "duration_hours": duration_hours,
-                    "ready_by": ready_by.isoformat() if ready_by else None,
-                    "continuous_block": continuous_block,
-                }
-            ],
+            "zone_code": zone_code,
+            "duration_hours": duration_hours,
+            # Null ⇒ the backend schedules against the next 24h.
+            "ready_by_utc": ready_by_utc.isoformat() if ready_by_utc is not None else None,
+            "continuous_block": continuous_block,
         }
 
         # The window is optional and only meaningful with both ends set.
@@ -76,28 +66,20 @@ class SpotBuddyApiClient:
 
         return await self._async_post(SCHEDULE_PATH, payload)
 
-    async def async_check_connection(self, *, latitude: float, longitude: float) -> None:
-        """Raise SpotBuddyApiError unless the backend answers.
-
-        Used by the config flow. Any HTTP answer counts as reachable - a 204 means the
-        zone simply has no colour right now, which still proves the URL is right.
-        """
-        url = f"{self._base_url}{STATUS_PATH}"
-        params = {
-            "lat": str(latitude),
-            "lon": str(longitude),
-            "time": dt_util.utcnow().isoformat(),
-        }
+    async def async_get_zones(self) -> list[dict[str, Any]]:
+        """The bidding zones, for the config flow's dropdown. Doubles as the reachability check."""
+        url = f"{self._base_url}{ZONES_PATH}"
 
         try:
             async with asyncio.timeout(API_TIMEOUT_SECONDS):
-                response = await self._session.get(url, params=params)
+                response = await self._session.get(url)
                 if response.status in (401, 403):
                     raise SpotBuddyAuthError(
                         f"Backend rejected the request ({response.status})"
                     )
-                if response.status >= 500:
+                if response.status >= 400:
                     raise SpotBuddyApiError(f"{url} returned {response.status}")
+                return await response.json()
         except TimeoutError as err:
             raise SpotBuddyApiError(f"Timeout calling {url}") from err
         except aiohttp.ClientError as err:
