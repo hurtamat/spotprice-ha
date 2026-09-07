@@ -10,8 +10,7 @@ Keep your electricity supplier, keep your devices. No hardware to buy.
 
 ## Requirements
 
-- Home Assistant 2024.4 or newer
-- A SpotBuddy backend URL
+- Home Assistant 2024.11 or newer
 - [HACS](https://hacs.xyz/) for the easy install path
 
 ## Installation
@@ -36,11 +35,13 @@ and restart Home Assistant.
 
 ## Configuration
 
-Everything is configured in the UI. The dialog asks for:
+Everything is configured in the UI, and there is no backend address to type — SpotBuddy knows where
+its own backend is. The dialog asks for:
 
 | Field | Required | Meaning |
 | --- | --- | --- |
-| Electricity zone | yes | Which day-ahead market your prices come from, picked from a list |
+| Name | yes | What to call this appliance |
+| Electricity zone | yes | Which day-ahead market your prices come from. Preselected from your Home Assistant location; change it if the guess is wrong. |
 | Controlled switch | no | Pick a switch and SpotBuddy turns it on and off for you. Leave it empty to drive things from your own automations instead. |
 
 **Setting a controlled switch is the whole setup.** SpotBuddy switches that entity on when a cheap
@@ -55,9 +56,6 @@ backend, so this normally means Home Assistant has no outbound internet access -
 that first. When the message appears, a **Backend URL** field is added to the form: use it
 if you run your own backend, or if you were told a different address. The field then stays
 available under **Configure** so you can change it back.
-
-Once an entry points at a custom backend the field stays visible under **Configure**, so
-the override can always be changed or undone.
 
 **The card shows "No price curve yet."** The integration has no plan yet. Press
 **Refresh plan** on the device page. If it stays empty, the backend has no prices stored
@@ -75,7 +73,7 @@ One config entry drives one appliance. Add the integration a second time for a s
 
 | Entity | Description |
 | --- | --- |
-| `binary_sensor.spotbuddy_running` | **The one that matters.** On during the cheap hours it picked. Attributes carry the zone and the full block list. |
+| `binary_sensor.spotbuddy_running` | **The one that matters.** On during the cheap hours it picked. Attributes carry the zone, the full block list, and `schedule` for charting cards. |
 | `sensor.spotbuddy_current_price` | EUR/MWh for the current slot. The `curve` attribute holds today and tomorrow. Click it for a price history graph - no extra cards needed. |
 | `sensor.spotbuddy_next_start` | When the cheap hours next begin, shown in your own timezone ("in 4 hours"). |
 | `sensor.spotbuddy_next_end` | When the current run ends, or the next one would. |
@@ -108,8 +106,10 @@ plans to run - several separate bands when the hours are split rather than conti
 marks now. Times are shown in your own timezone. One card per appliance: point each at that
 appliance's Running sensor.
 
-If the card does not appear after an update, hard-refresh the browser (Ctrl+Shift+R) to drop
-the cached copy.
+If the card does not appear after an update, Home Assistant's service worker is still serving a
+cached copy — a hard refresh is not always enough. Open the browser devtools console and run
+`navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()))`, then
+reopen the tab. Devtools → Application → Clear site data does the same thing.
 
 ### Using another chart card instead
 
