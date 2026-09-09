@@ -46,7 +46,7 @@ def _level_name(level: int | None) -> str | None:
 
 @dataclass
 class ScheduledBlock:
-    """One contiguous ON block, as returned by POST /api/schedule."""
+    """One contiguous ON block, as returned by POST /api/homeassistant/schedule."""
 
     start_utc: datetime
     end_utc: datetime
