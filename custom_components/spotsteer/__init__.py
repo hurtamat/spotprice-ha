@@ -1,4 +1,4 @@
-"""The SpotBuddy integration."""
+"""The SpotSteer integration."""
 
 import asyncio
 import logging
@@ -24,7 +24,7 @@ from .const import (
     STARTUP_MESSAGE,
     VERSION,
 )
-from .coordinator import SpotBuddyCoordinator
+from .coordinator import SpotSteerCoordinator
 
 _LOGGER: logging.Logger = logging.getLogger(__package__)
 
@@ -41,14 +41,14 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up SpotBuddy from a config entry."""
+    """Set up SpotSteer from a config entry."""
     _LOGGER.debug("async_setup_entry")
 
     if hass.data.get(DOMAIN) is None:
         hass.data.setdefault(DOMAIN, {})
         _LOGGER.info(STARTUP_MESSAGE)
 
-    coordinator = SpotBuddyCoordinator(hass, entry)
+    coordinator = SpotSteerCoordinator(hass, entry)
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
     coordinator.platforms.extend(PLATFORMS)
@@ -89,7 +89,7 @@ def _sync_device_name(hass: HomeAssistant, entry: ConfigEntry) -> None:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Handle removal of an entry."""
     _LOGGER.debug("async_unload_entry")
-    coordinator: SpotBuddyCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: SpotSteerCoordinator = hass.data[DOMAIN][entry.entry_id]
     unloaded = await hass.config_entries.async_unload_platforms(
         entry, coordinator.platforms
     )

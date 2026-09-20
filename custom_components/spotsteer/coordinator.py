@@ -1,6 +1,6 @@
-"""Coordinator for SpotBuddy.
+"""Coordinator for SpotSteer.
 
-Holds the committed run plan fetched from the SpotBuddy backend and derives the
+Holds the committed run plan fetched from the SpotSteer backend and derives the
 current relay state from it. All optimization happens server-side; this class is
 deliberately thin.
 """
@@ -20,7 +20,7 @@ from homeassistant.helpers.event import async_track_utc_time_change
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .api import SpotBuddyApiClient, SpotBuddyApiError, SpotBuddyAuthError
+from .api import SpotSteerApiClient, SpotSteerApiError, SpotSteerAuthError
 from .const import (
     CONF_BASE_URL,
     CONF_CONTROLLED_SWITCH,
@@ -72,7 +72,7 @@ class CurveSlot:
 
 
 @dataclass
-class SpotBuddyPlan:
+class SpotSteerPlan:
     """The committed plan for one device, plus the ambient price state."""
 
     zone_name: str | None = None
@@ -100,7 +100,7 @@ class SpotBuddyPlan:
         return upcoming[0] if upcoming else None
 
 
-class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
+class SpotSteerCoordinator(DataUpdateCoordinator[SpotSteerPlan]):
     """Fetches the plan on a schedule and drives entity state off it."""
 
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
@@ -125,7 +125,7 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
             get_parameter(config_entry, CONF_CONTROLLED_SWITCH, "") or None
         )
         # No API key yet; rate limiting instead. The client still handles a 401/403.
-        self.client = SpotBuddyApiClient(
+        self.client = SpotSteerApiClient(
             async_get_clientsession(hass), self.base_url, None
         )
 
@@ -162,7 +162,7 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
             unsub()
         self.listeners = []
 
-    async def _async_update_data(self) -> SpotBuddyPlan:
+    async def _async_update_data(self) -> SpotSteerPlan:
         """Fetch the committed plan and the price curve from the backend."""
         try:
             deadline = self._deadline_utc()
@@ -177,10 +177,10 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
                 unavailable_from=self._to_utc_time(self._unavailable_from, anchor_date),
                 unavailable_to=self._to_utc_time(self._unavailable_to, anchor_date),
             )
-        except SpotBuddyAuthError as err:
+        except SpotSteerAuthError as err:
             # Sends the user to the reconfigure flow rather than retrying forever.
             raise ConfigEntryAuthFailed(str(err)) from err
-        except SpotBuddyApiError as err:
+        except SpotSteerApiError as err:
             raise UpdateFailed(str(err)) from err
 
         return self._parse_plan(body)
@@ -222,8 +222,8 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
         """The instant a local wall clock names. as_local reads naive times as local."""
         return dt_util.as_utc(dt_util.as_local(datetime.combine(on_date, at)))
 
-    def _parse_plan(self, body: dict) -> SpotBuddyPlan:
-        """Map the response body onto a SpotBuddyPlan.
+    def _parse_plan(self, body: dict) -> SpotSteerPlan:
+        """Map the response body onto a SpotSteerPlan.
 
         One config entry drives one appliance, so the response is flat: one plan.
         """
@@ -259,7 +259,7 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
                 )
             )
 
-        return SpotBuddyPlan(
+        return SpotSteerPlan(
             zone_name=body.get("zone_name"),
             scheduled=bool(body.get("scheduled")),
             blocks=sorted(blocks, key=lambda b: b.start_utc),
@@ -275,7 +275,7 @@ class SpotBuddyCoordinator(DataUpdateCoordinator[SpotBuddyPlan]):
 
     async def async_config_updated(self) -> None:
         """A config entity changed; the committed plan no longer matches it."""
-        _LOGGER.debug("SpotBuddyCoordinator.async_config_updated")
+        _LOGGER.debug("SpotSteerCoordinator.async_config_updated")
         await self.async_request_refresh()
         # The refresh is debounced, but "Enabled off" must reach the relay now.
         await self.async_apply_control()

@@ -1,4 +1,4 @@
-"""Client for the SpotBuddy backend."""
+"""Client for the SpotSteer backend."""
 
 from __future__ import annotations
 
@@ -19,15 +19,15 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-class SpotBuddyApiError(Exception):
+class SpotSteerApiError(Exception):
     """Raised when the backend cannot be reached or answers with an error."""
 
 
-class SpotBuddyAuthError(SpotBuddyApiError):
+class SpotSteerAuthError(SpotSteerApiError):
     """Raised when the backend rejects the API key."""
 
 
-class SpotBuddyApiClient:
+class SpotSteerApiClient:
     """Thin wrapper over POST /api/homeassistant/schedule.
 
     One call per refresh: the response carries the committed plan and the price
@@ -81,16 +81,16 @@ class SpotBuddyApiClient:
             async with asyncio.timeout(API_TIMEOUT_SECONDS):
                 response = await self._session.get(url)
                 if response.status in (401, 403):
-                    raise SpotBuddyAuthError(
+                    raise SpotSteerAuthError(
                         f"Backend rejected the request ({response.status})"
                     )
                 if response.status >= 400:
-                    raise SpotBuddyApiError(f"{url} returned {response.status}")
+                    raise SpotSteerApiError(f"{url} returned {response.status}")
                 return await response.json()
         except TimeoutError as err:
-            raise SpotBuddyApiError(f"Timeout calling {url}") from err
+            raise SpotSteerApiError(f"Timeout calling {url}") from err
         except aiohttp.ClientError as err:
-            raise SpotBuddyApiError(f"Cannot reach {url}: {err}") from err
+            raise SpotSteerApiError(f"Cannot reach {url}: {err}") from err
 
     async def async_resolve_zone(
         self, *, latitude: float, longitude: float
@@ -110,7 +110,7 @@ class SpotBuddyApiClient:
             return None
 
     async def _async_post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
-        """POST JSON and return the parsed body, or raise SpotBuddyApiError."""
+        """POST JSON and return the parsed body, or raise SpotSteerApiError."""
         url = f"{self._base_url}{path}"
         headers = {"Content-Type": "application/json"}
         if self._api_key:
@@ -121,18 +121,18 @@ class SpotBuddyApiClient:
                 response = await self._session.post(url, json=payload, headers=headers)
 
                 if response.status in (401, 403):
-                    raise SpotBuddyAuthError(
+                    raise SpotSteerAuthError(
                         f"Backend rejected the API key ({response.status})"
                     )
                 if response.status >= 400:
                     body = await response.text()
-                    raise SpotBuddyApiError(
+                    raise SpotSteerApiError(
                         f"{url} returned {response.status}: {body[:200]}"
                     )
 
                 return await response.json()
 
         except TimeoutError as err:
-            raise SpotBuddyApiError(f"Timeout calling {url}") from err
+            raise SpotSteerApiError(f"Timeout calling {url}") from err
         except aiohttp.ClientError as err:
-            raise SpotBuddyApiError(f"Cannot reach {url}: {err}") from err
+            raise SpotSteerApiError(f"Cannot reach {url}: {err}") from err

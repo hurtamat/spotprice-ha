@@ -1,4 +1,4 @@
-"""Base entity classes for SpotBuddy."""
+"""Base entity classes for SpotSteer."""
 
 import logging
 
@@ -7,13 +7,13 @@ from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, ICON, NAME, VERSION
-from .coordinator import SpotBuddyCoordinator
+from .coordinator import SpotSteerCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class SpotBuddyEntityBase:
-    """Shared identity for every SpotBuddy entity.
+class SpotSteerEntityBase:
+    """Shared identity for every SpotSteer entity.
 
     Entity ids are derived by Home Assistant from the device name and the
     translation key; we deliberately do not assign entity_id ourselves.
@@ -41,19 +41,19 @@ class SpotBuddyEntityBase:
         }
 
 
-class SpotBuddyEntity(SpotBuddyEntityBase, Entity):
+class SpotSteerEntity(SpotSteerEntityBase, Entity):
     """A user-settable entity. Its value is restored, not fetched."""
 
-    def __init__(self, entry: ConfigEntry, coordinator: SpotBuddyCoordinator) -> None:
+    def __init__(self, entry: ConfigEntry, coordinator: SpotSteerCoordinator) -> None:
         self.coordinator = coordinator
         self._init_identity(entry)
 
 
-class SpotBuddyCoordinatorEntity(
-    SpotBuddyEntityBase, CoordinatorEntity[SpotBuddyCoordinator]
+class SpotSteerCoordinatorEntity(
+    SpotSteerEntityBase, CoordinatorEntity[SpotSteerCoordinator]
 ):
     """A read-only entity whose value comes from the coordinator."""
 
-    def __init__(self, entry: ConfigEntry, coordinator: SpotBuddyCoordinator) -> None:
+    def __init__(self, entry: ConfigEntry, coordinator: SpotSteerCoordinator) -> None:
         super().__init__(coordinator)
         self._init_identity(entry)

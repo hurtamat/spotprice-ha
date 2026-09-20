@@ -1,6 +1,6 @@
-// SpotBuddy Lovelace card: the price curve with each planned run block shaded on it.
+// SpotSteer Lovelace card: the price curve with each planned run block shaded on it.
 
-const CARD_TYPE = "spotbuddy-card";
+const CARD_TYPE = "spotsteer-card";
 
 // Theme variables, so the card follows the user's theme.
 const LEVEL_COLOR = {
@@ -33,7 +33,7 @@ function localDayTime(iso) {
   return `${day} ${localTime(iso)}`;
 }
 
-class SpotBuddyCard extends HTMLElement {
+class SpotSteerCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
@@ -43,10 +43,10 @@ class SpotBuddyCard extends HTMLElement {
 
   setConfig(config) {
     if (!config || !config.entity) {
-      throw new Error("spotbuddy-card: an `entity` is required (the Running binary sensor)");
+      throw new Error("spotsteer-card: an `entity` is required (the Running binary sensor)");
     }
     if (!config.entity.startsWith("binary_sensor.")) {
-      throw new Error("spotbuddy-card: `entity` must be the SpotBuddy Running binary sensor");
+      throw new Error("spotsteer-card: `entity` must be the SpotSteer Running binary sensor");
     }
     this._config = config;
     this._render();
@@ -64,7 +64,7 @@ class SpotBuddyCard extends HTMLElement {
   /** Prefills the picker, so the card works unconfigured. */
   static getStubConfig(hass) {
     const entity = Object.keys(hass.states).find(
-      (id) => id.startsWith("binary_sensor.") && id.includes("spotbuddy") && id.endsWith("_running"),
+      (id) => id.startsWith("binary_sensor.") && id.includes("spotsteer") && id.endsWith("_running"),
     );
     return { type: `custom:${CARD_TYPE}`, entity: entity ?? "" };
   }
@@ -108,7 +108,7 @@ class SpotBuddyCard extends HTMLElement {
     const title =
       this._config.title ??
       this._hass.states[this._config.entity].attributes.friendly_name ??
-      "SpotBuddy";
+      "SpotSteer";
 
     if (curve.length === 0) {
       this.shadowRoot.innerHTML = this._shell(
@@ -123,7 +123,7 @@ class SpotBuddyCard extends HTMLElement {
   }
 
   /** Card chrome: title, subtitle, body. */
-  _shell(body, title = "SpotBuddy", running = null) {
+  _shell(body, title = "SpotSteer", running = null) {
     const zone = running?.attributes?.zone_name;
     const subtitle = this._subtitle(running);
 
@@ -286,15 +286,15 @@ class SpotBuddyCard extends HTMLElement {
 }
 
 if (!customElements.get(CARD_TYPE)) {
-  customElements.define(CARD_TYPE, SpotBuddyCard);
+  customElements.define(CARD_TYPE, SpotSteerCard);
 }
 
 // Puts the card in the "Add card" picker.
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: CARD_TYPE,
-  name: "SpotBuddy",
+  name: "SpotSteer",
   description: "Day-ahead prices with your planned cheap hours highlighted",
   preview: true,
-  documentationURL: "https://github.com/hurtamat/spotprice-ha",
+  documentationURL: "https://github.com/hurtamat/spotsteer-ha",
 });

@@ -1,23 +1,23 @@
 blueprint:
-  name: SpotBuddy - run a device during the cheap hours
+  name: SpotSteer - run a device during the cheap hours
   description: >-
-    Switches a device on and off to follow the run blocks SpotBuddy picked for
-    the day. Use this when you want SpotBuddy's plan to drive an entity it is
+    Switches a device on and off to follow the run blocks SpotSteer picked for
+    the day. Use this when you want SpotSteer's plan to drive an entity it is
     not configured to control directly, or when you want to add your own
     conditions on top.
   domain: automation
   homeassistant:
     min_version: "2024.4.0"
-  source_url: https://github.com/hurtamat/spotprice-ha/blob/main/blueprints/automation/spotbuddy/cheap_hours_switch.yaml
+  source_url: https://github.com/hurtamat/spotsteer-ha/blob/main/blueprints/automation/spotsteer/cheap_hours_switch.yaml
   input:
-    spotbuddy_sensor:
-      name: SpotBuddy run sensor
+    spotsteer_sensor:
+      name: SpotSteer run sensor
       description: The binary sensor that is on during the cheap hours.
       selector:
         entity:
           filter:
             - domain: binary_sensor
-              integration: spotbuddy
+              integration: spotsteer
     target_entity:
       name: Device to control
       description: The switch, plug or relay to turn on and off.
@@ -41,11 +41,11 @@ max: 10
 
 triggers:
   - trigger: state
-    entity_id: !input spotbuddy_sensor
+    entity_id: !input spotsteer_sensor
     to: "on"
     id: cheap_hours_started
   - trigger: state
-    entity_id: !input spotbuddy_sensor
+    entity_id: !input spotsteer_sensor
     to: "off"
     id: cheap_hours_ended
 

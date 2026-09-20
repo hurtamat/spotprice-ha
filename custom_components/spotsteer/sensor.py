@@ -1,4 +1,4 @@
-"""Sensor platform for SpotBuddy."""
+"""Sensor platform for SpotSteer."""
 
 from datetime import datetime
 import logging
@@ -22,32 +22,32 @@ from .const import (
     PRICE_LEVELS,
     SENSOR,
 )
-from .coordinator import SpotBuddyCoordinator
-from .entity import SpotBuddyCoordinatorEntity
+from .coordinator import SpotSteerCoordinator
+from .entity import SpotSteerCoordinatorEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry, async_add_devices) -> None:
     """Set up the sensor platform."""
-    coordinator: SpotBuddyCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: SpotSteerCoordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_devices(
         [
-            SpotBuddySensorPrice(entry, coordinator),
-            SpotBuddySensorPriceLevel(entry, coordinator),
-            SpotBuddySensorNextStart(entry, coordinator),
-            SpotBuddySensorNextEnd(entry, coordinator),
+            SpotSteerSensorPrice(entry, coordinator),
+            SpotSteerSensorPriceLevel(entry, coordinator),
+            SpotSteerSensorNextStart(entry, coordinator),
+            SpotSteerSensorNextEnd(entry, coordinator),
         ]
     )
 
 
-class SpotBuddySensor(SpotBuddyCoordinatorEntity, SensorEntity):
+class SpotSteerSensor(SpotSteerCoordinatorEntity, SensorEntity):
     """Base sensor."""
 
     _platform = SENSOR
 
 
-class SpotBuddySensorPrice(SpotBuddySensor):
+class SpotSteerSensorPrice(SpotSteerSensor):
     """The spot price for the current slot."""
 
     _entity_key = ENTITY_KEY_PRICE
@@ -76,7 +76,7 @@ class SpotBuddySensorPrice(SpotBuddySensor):
         return {"zone_name": plan.zone_name, "curve": plan.curve}
 
 
-class SpotBuddySensorPriceLevel(SpotBuddySensor):
+class SpotSteerSensorPriceLevel(SpotSteerSensor):
     """The price colour for the current slot: green, yellow or red."""
 
     _entity_key = ENTITY_KEY_PRICE_LEVEL
@@ -89,7 +89,7 @@ class SpotBuddySensorPriceLevel(SpotBuddySensor):
         return self.coordinator.price_level
 
 
-class SpotBuddySensorNextStart(SpotBuddySensor):
+class SpotSteerSensorNextStart(SpotSteerSensor):
     """When the appliance next switches on.
 
     A timestamp device class, so Home Assistant renders it in the user's own
@@ -106,7 +106,7 @@ class SpotBuddySensorNextStart(SpotBuddySensor):
         return self.coordinator.next_start
 
 
-class SpotBuddySensorNextEnd(SpotBuddySensor):
+class SpotSteerSensorNextEnd(SpotSteerSensor):
     """When the current run ends, or the next one would."""
 
     _entity_key = ENTITY_KEY_NEXT_END

@@ -1,4 +1,4 @@
-"""Number platform for SpotBuddy."""
+"""Number platform for SpotSteer."""
 
 import logging
 
@@ -13,20 +13,20 @@ from .const import (
     ICON_TIME,
     NUMBER,
 )
-from .coordinator import SpotBuddyCoordinator
-from .entity import SpotBuddyEntity
+from .coordinator import SpotSteerCoordinator
+from .entity import SpotSteerEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry, async_add_devices) -> None:
     """Set up the number platform."""
-    coordinator: SpotBuddyCoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_devices([SpotBuddyNumberDuration(entry, coordinator)])
+    coordinator: SpotSteerCoordinator = hass.data[DOMAIN][entry.entry_id]
+    async_add_devices([SpotSteerNumberDuration(entry, coordinator)])
 
 
 # pylint: disable=abstract-method
-class SpotBuddyNumberDuration(SpotBuddyEntity, RestoreNumber):
+class SpotSteerNumberDuration(SpotSteerEntity, RestoreNumber):
     """How many hours of power the task needs. The one always-required field."""
 
     _entity_key = ENTITY_KEY_DURATION_NUMBER

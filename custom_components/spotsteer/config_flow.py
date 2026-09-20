@@ -1,4 +1,4 @@
-"""Config flow for SpotBuddy."""
+"""Config flow for SpotSteer."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ from homeassistant.helpers.selector import (
     TextSelectorType,
 )
 
-from .api import SpotBuddyApiClient, SpotBuddyApiError
+from .api import SpotSteerApiClient, SpotSteerApiError
 from .const import (
     CONF_BASE_URL,
     CONF_CONTROLLED_SWITCH,
@@ -37,7 +37,7 @@ from .helpers.general import DeviceNameCreator, get_parameter
 
 _LOGGER = logging.getLogger(__name__)
 
-# Leave empty to publish binary_sensor.spotbuddy_running only and automate it yourself.
+# Leave empty to publish binary_sensor.spotsteer_running only and automate it yourself.
 _CONTROLLED_SWITCH_SELECTOR = EntitySelector(
     EntitySelectorConfig(domain=["switch", "input_boolean"])
 )
@@ -48,7 +48,7 @@ def _is_url(value: str) -> bool:
     return value.strip().startswith(("http://", "https://"))
 
 
-class SpotBuddyFlowMixin:
+class SpotSteerFlowMixin:
     """Form building and validation shared by the config and options flows.
 
     The backend URL is a constant, not a question. It becomes a field only after a failed
@@ -127,8 +127,8 @@ class SpotBuddyFlowMixin:
         )
 
     async def _async_load_zones(self, base_url: str) -> None:
-        """Fetch the zone list. Raises SpotBuddyApiError, which doubles as the reachability check."""
-        client = SpotBuddyApiClient(async_get_clientsession(self.hass), base_url, None)
+        """Fetch the zone list. Raises SpotSteerApiError, which doubles as the reachability check."""
+        client = SpotSteerApiClient(async_get_clientsession(self.hass), base_url, None)
         self._zones = {
             zone["code"]: zone.get("name", zone["code"])
             for zone in await client.async_get_zones()
@@ -155,7 +155,7 @@ class SpotBuddyFlowMixin:
 
         try:
             await self._async_load_zones(str(data[CONF_BASE_URL]))
-        except SpotBuddyApiError as err:
+        except SpotSteerApiError as err:
             _LOGGER.debug("Backend unreachable during setup: %s", err)
             # Reveal the URL field on the retry, as a way out.
             self._url_failed = True
@@ -168,7 +168,7 @@ class SpotBuddyFlowMixin:
         return data
 
 
-class SpotBuddyConfigFlow(SpotBuddyFlowMixin, config_entries.ConfigFlow, domain=DOMAIN):
+class SpotSteerConfigFlow(SpotSteerFlowMixin, config_entries.ConfigFlow, domain=DOMAIN):
     """Handle the initial configuration."""
 
     VERSION = 1
@@ -183,7 +183,7 @@ class SpotBuddyConfigFlow(SpotBuddyFlowMixin, config_entries.ConfigFlow, domain=
         config_entry: config_entries.ConfigEntry,
     ) -> config_entries.OptionsFlow:
         """Create the options flow."""
-        return SpotBuddyOptionsFlow()
+        return SpotSteerOptionsFlow()
 
     async def async_step_user(self, user_input=None) -> FlowResult:
         """Handle the initial step."""
@@ -198,7 +198,7 @@ class SpotBuddyConfigFlow(SpotBuddyFlowMixin, config_entries.ConfigFlow, domain=
 
         if user_input is None:
             # Populate the dropdown before the form is first shown.
-            with suppress(SpotBuddyApiError):
+            with suppress(SpotSteerApiError):
                 await self._async_load_zones(DEFAULT_BASE_URL)
         else:
             data = await self._async_validate(user_input)
@@ -215,7 +215,7 @@ class SpotBuddyConfigFlow(SpotBuddyFlowMixin, config_entries.ConfigFlow, domain=
         )
 
 
-class SpotBuddyOptionsFlow(SpotBuddyFlowMixin, config_entries.OptionsFlow):
+class SpotSteerOptionsFlow(SpotSteerFlowMixin, config_entries.OptionsFlow):
     """Handle reconfiguration of an existing entry."""
 
     def __init__(self) -> None:
@@ -234,7 +234,7 @@ class SpotBuddyOptionsFlow(SpotBuddyFlowMixin, config_entries.OptionsFlow):
         }
 
         if user_input is None:
-            with suppress(SpotBuddyApiError):
+            with suppress(SpotSteerApiError):
                 await self._async_load_zones(str(defaults[CONF_BASE_URL]))
         else:
             # A form without the URL field must not silently reset a custom backend.

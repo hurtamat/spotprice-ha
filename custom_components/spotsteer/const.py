@@ -1,12 +1,12 @@
-"""Constants for the SpotBuddy integration."""
+"""Constants for the SpotSteer integration."""
 
 from homeassistant.const import Platform
 from homeassistant.const import __version__ as HA_VERSION
 
-NAME = "SpotBuddy"
-DOMAIN = "spotbuddy"
-VERSION = "0.1.0"
-ISSUE_URL = "https://github.com/hurtamat/spotprice-ha/issues"
+NAME = "SpotSteer"
+DOMAIN = "spotsteer"
+VERSION = "0.2.0"
+ISSUE_URL = "https://github.com/hurtamat/spotsteer-ha/issues"
 
 # Icons
 ICON = "mdi:flash"
@@ -45,14 +45,14 @@ ENTITY_KEY_REFRESH_BUTTON = "refresh_plan"
 CONF_DEVICE_NAME = "device_name"
 CONF_BASE_URL = "base_url"
 CONF_ZONE_CODE = "zone_code"
-# Optional: an entity SpotBuddy switches directly, so no automation is needed.
+# Optional: an entity SpotSteer switches directly, so no automation is needed.
 CONF_CONTROLLED_SWITCH = "controlled_switch"
 
 # Price levels, mirroring the backend PriceQuantile enum (0/1/2).
 PRICE_LEVELS = ["green", "yellow", "red"]
 
 # The bundled Lovelace card, shipped inside the integration so HACS carries it.
-CARD_FILENAME = "spotbuddy-card.js"
+CARD_FILENAME = "spotsteer-card.js"
 CARD_SOURCE_PATH = f"custom_components/{DOMAIN}/www/{CARD_FILENAME}"
 CARD_URL = f"/{DOMAIN}/{CARD_FILENAME}"
 

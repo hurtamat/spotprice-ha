@@ -1,4 +1,4 @@
-"""Time platform for SpotBuddy.
+"""Time platform for SpotSteer.
 
 Replaces the 96-option select the upstream integration used for its completion
 time; Home Assistant has had a native time entity since 2023.4.
@@ -25,26 +25,26 @@ from .const import (
     ICON_TIMER_OFF,
     TIME,
 )
-from .coordinator import SpotBuddyCoordinator
-from .entity import SpotBuddyEntity
+from .coordinator import SpotSteerCoordinator
+from .entity import SpotSteerEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry, async_add_devices) -> None:
     """Set up the time platform."""
-    coordinator: SpotBuddyCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: SpotSteerCoordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_devices(
         [
-            SpotBuddyTimeReadyBy(entry, coordinator),
-            SpotBuddyTimeUnavailableFrom(entry, coordinator),
-            SpotBuddyTimeUnavailableTo(entry, coordinator),
+            SpotSteerTimeReadyBy(entry, coordinator),
+            SpotSteerTimeUnavailableFrom(entry, coordinator),
+            SpotSteerTimeUnavailableTo(entry, coordinator),
         ]
     )
 
 
 # pylint: disable=abstract-method
-class SpotBuddyTime(SpotBuddyEntity, TimeEntity, RestoreEntity):
+class SpotSteerTime(SpotSteerEntity, TimeEntity, RestoreEntity):
     """Base time entity; its value survives a restart."""
 
     _platform = TIME
@@ -74,7 +74,7 @@ class SpotBuddyTime(SpotBuddyEntity, TimeEntity, RestoreEntity):
         raise NotImplementedError
 
 
-class SpotBuddyTimeReadyBy(SpotBuddyTime):
+class SpotSteerTimeReadyBy(SpotSteerTime):
     """The deadline the task must finish by. The window is the 24h before it."""
 
     _entity_key = ENTITY_KEY_READY_BY_TIME
@@ -84,7 +84,7 @@ class SpotBuddyTimeReadyBy(SpotBuddyTime):
         self.coordinator.ready_by = self._attr_native_value
 
 
-class SpotBuddyTimeUnavailableFrom(SpotBuddyTime):
+class SpotSteerTimeUnavailableFrom(SpotSteerTime):
     """Start of the do-not-run window. Unset means no window."""
 
     _entity_key = ENTITY_KEY_UNAVAILABLE_FROM_TIME
@@ -94,7 +94,7 @@ class SpotBuddyTimeUnavailableFrom(SpotBuddyTime):
         self.coordinator.unavailable_from = self._attr_native_value
 
 
-class SpotBuddyTimeUnavailableTo(SpotBuddyTime):
+class SpotSteerTimeUnavailableTo(SpotSteerTime):
     """End of the do-not-run window. May wrap past midnight."""
 
     _entity_key = ENTITY_KEY_UNAVAILABLE_TO_TIME

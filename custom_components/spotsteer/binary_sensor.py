@@ -1,4 +1,4 @@
-"""Binary sensor platform for SpotBuddy."""
+"""Binary sensor platform for SpotSteer."""
 
 import logging
 
@@ -6,19 +6,19 @@ from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.core import HomeAssistant
 
 from .const import BINARY_SENSOR, DOMAIN, ENTITY_KEY_RUNNING
-from .coordinator import SpotBuddyCoordinator
-from .entity import SpotBuddyCoordinatorEntity
+from .coordinator import SpotSteerCoordinator
+from .entity import SpotSteerCoordinatorEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry, async_add_devices) -> None:
     """Set up the binary sensor platform."""
-    coordinator: SpotBuddyCoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_devices([SpotBuddyBinarySensorRunning(entry, coordinator)])
+    coordinator: SpotSteerCoordinator = hass.data[DOMAIN][entry.entry_id]
+    async_add_devices([SpotSteerBinarySensorRunning(entry, coordinator)])
 
 
-class SpotBuddyBinarySensorRunning(SpotBuddyCoordinatorEntity, BinarySensorEntity):
+class SpotSteerBinarySensorRunning(SpotSteerCoordinatorEntity, BinarySensorEntity):
     """On while the current time falls inside a committed run block.
 
     This is the whole contract for automations: wire it to any switch you own.
