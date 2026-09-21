@@ -1,4 +1,4 @@
-"""Binary sensor platform for SpotBuddy."""
+"""Binary sensor platform for SpotSteer."""
 
 import logging
 
@@ -6,19 +6,19 @@ from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.core import HomeAssistant
 
 from .const import BINARY_SENSOR, DOMAIN, ENTITY_KEY_RUNNING
-from .coordinator import SpotBuddyCoordinator
-from .entity import SpotBuddyCoordinatorEntity
+from .coordinator import SpotSteerCoordinator
+from .entity import SpotSteerCoordinatorEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry, async_add_devices) -> None:
     """Set up the binary sensor platform."""
-    coordinator: SpotBuddyCoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_devices([SpotBuddyBinarySensorRunning(entry, coordinator)])
+    coordinator: SpotSteerCoordinator = hass.data[DOMAIN][entry.entry_id]
+    async_add_devices([SpotSteerBinarySensorRunning(entry, coordinator)])
 
 
-class SpotBuddyBinarySensorRunning(SpotBuddyCoordinatorEntity, BinarySensorEntity):
+class SpotSteerBinarySensorRunning(SpotSteerCoordinatorEntity, BinarySensorEntity):
     """On while the current time falls inside a committed run block.
 
     This is the whole contract for automations: wire it to any switch you own.
@@ -39,15 +39,27 @@ class SpotBuddyBinarySensorRunning(SpotBuddyCoordinatorEntity, BinarySensorEntit
         if plan is None:
             return {}
 
+        blocks = [
+            {
+                "start_utc": block.start_utc.isoformat(),
+                "end_utc": block.end_utc.isoformat(),
+                "eur_per_mwh": block.eur_per_mwh,
+            }
+            for block in plan.blocks
+        ]
+
         return {
             "zone_name": plan.zone_name,
             "scheduled": plan.scheduled,
-            "blocks": [
-                {
-                    "start_utc": block.start_utc.isoformat(),
-                    "end_utc": block.end_utc.isoformat(),
-                    "eur_per_mwh": block.eur_per_mwh,
-                }
-                for block in plan.blocks
-            ],
+            "blocks": blocks,
+            "schedule": _as_step_series(plan.blocks),
         }
+
+
+def _as_step_series(blocks) -> list[dict]:
+    """The blocks as an on/off step series, which is what charting cards can draw."""
+    series = []
+    for block in blocks:
+        series.append({"start": block.start_utc.isoformat(), "value": 1})
+        series.append({"start": block.end_utc.isoformat(), "value": 0})
+    return series

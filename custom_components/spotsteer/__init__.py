@@ -1,8 +1,10 @@
-"""The SpotBuddy integration."""
+"""The SpotSteer integration."""
 
 import asyncio
 import logging
 
+from homeassistant.components import frontend
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntry, DeviceRegistry
@@ -12,22 +14,41 @@ from homeassistant.helpers.entity_registry import (
     async_entries_for_config_entry,
 )
 from homeassistant.helpers.entity_registry import async_get as async_entity_registry_get
+from homeassistant.helpers.start import async_at_started
 
-from .const import DOMAIN, PLATFORMS, STARTUP_MESSAGE
-from .coordinator import SpotBuddyCoordinator
+from .const import (
+    CARD_SOURCE_PATH,
+    CARD_URL,
+    DOMAIN,
+    PLATFORMS,
+    STARTUP_MESSAGE,
+    VERSION,
+)
+from .coordinator import SpotSteerCoordinator
 
 _LOGGER: logging.Logger = logging.getLogger(__package__)
 
 
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Serve the bundled Lovelace card, once per Home Assistant start."""
+    await hass.http.async_register_static_paths(
+        [StaticPathConfig(CARD_URL, hass.config.path(CARD_SOURCE_PATH), True)]
+    )
+    # The version query busts the browser cache on update.
+    frontend.add_extra_js_url(hass, f"{CARD_URL}?v={VERSION}")
+    _LOGGER.debug("Registered %s", CARD_URL)
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up SpotBuddy from a config entry."""
+    """Set up SpotSteer from a config entry."""
     _LOGGER.debug("async_setup_entry")
 
     if hass.data.get(DOMAIN) is None:
         hass.data.setdefault(DOMAIN, {})
         _LOGGER.info(STARTUP_MESSAGE)
 
-    coordinator = SpotBuddyCoordinator(hass, entry)
+    coordinator = SpotSteerCoordinator(hass, entry)
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
     coordinator.platforms.extend(PLATFORMS)
@@ -36,6 +57,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # The config entities restore their values as they are added, so the first
     # fetch happens once the platforms are up rather than before them.
     await coordinator.async_refresh()
+
+    # The controlled switch may not exist yet during a cold start. Fires at once if HA is up.
+    async def _apply_when_started(_hass: HomeAssistant) -> None:
+        await coordinator.async_apply_control()
+
+    entry.async_on_unload(async_at_started(hass, _apply_when_started))
 
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     _sync_device_name(hass, entry)
@@ -62,7 +89,7 @@ def _sync_device_name(hass: HomeAssistant, entry: ConfigEntry) -> None:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Handle removal of an entry."""
     _LOGGER.debug("async_unload_entry")
-    coordinator: SpotBuddyCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: SpotSteerCoordinator = hass.data[DOMAIN][entry.entry_id]
     unloaded = await hass.config_entries.async_unload_platforms(
         entry, coordinator.platforms
     )

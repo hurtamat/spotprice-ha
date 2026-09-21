@@ -3,7 +3,7 @@ name: Validate
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, dev]
   schedule:
     # Hassfest and HACS track Home Assistant releases, so re-run weekly to catch
     # a rule that started failing without us touching anything.

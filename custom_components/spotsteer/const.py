@@ -1,18 +1,20 @@
-"""Constants for the SpotBuddy integration."""
+"""Constants for the SpotSteer integration."""
 
 from homeassistant.const import Platform
 from homeassistant.const import __version__ as HA_VERSION
 
-NAME = "SpotBuddy"
-DOMAIN = "spotbuddy"
-VERSION = "0.1.0"
-ISSUE_URL = "https://github.com/matejhurta/spotPriceCalc/issues"
+NAME = "SpotSteer"
+DOMAIN = "spotsteer"
+VERSION = "0.2.0"
+ISSUE_URL = "https://github.com/hurtamat/spotprice-ha/issues"
 
 # Icons
 ICON = "mdi:flash"
 ICON_CASH = "mdi:cash"
 ICON_REFRESH = "mdi:refresh"
 ICON_TIME = "mdi:clock-time-four-outline"
+ICON_START = "mdi:play-circle-outline"
+ICON_STOP = "mdi:stop-circle-outline"
 ICON_TIMER_OFF = "mdi:timer-off-outline"
 
 # Platforms
@@ -26,11 +28,13 @@ PLATFORMS = [BINARY_SENSOR, SENSOR, NUMBER, SWITCH, TIME, BUTTON]
 
 # Entity keys
 ENTITY_KEY_RUNNING = "running"
-ENTITY_KEY_STATUS = "status"
 ENTITY_KEY_PRICE = "price"
 ENTITY_KEY_PRICE_LEVEL = "price_level"
+ENTITY_KEY_NEXT_START = "next_start"
+ENTITY_KEY_NEXT_END = "next_end"
 ENTITY_KEY_ENABLED_SWITCH = "enabled"
 ENTITY_KEY_CONTINUOUS_SWITCH = "continuous_block"
+ENTITY_KEY_UNAVAILABLE_SWITCH = "unavailable_window"
 ENTITY_KEY_DURATION_NUMBER = "duration_hours"
 ENTITY_KEY_READY_BY_TIME = "ready_by"
 ENTITY_KEY_UNAVAILABLE_FROM_TIME = "unavailable_from"
@@ -40,27 +44,28 @@ ENTITY_KEY_REFRESH_BUTTON = "refresh_plan"
 # Configuration keys
 CONF_DEVICE_NAME = "device_name"
 CONF_BASE_URL = "base_url"
-CONF_API_KEY = "api_key"
-CONF_LATITUDE = "latitude"
-CONF_LONGITUDE = "longitude"
-
-# Status sensor states. Kept as slugs so automations are language-independent.
-STATUS_DISABLED = "disabled"
-STATUS_WAITING_FOR_PLAN = "waiting_for_plan"
-STATUS_NO_PLAN = "no_plan"
-STATUS_WAITING_TO_START = "waiting_to_start"
-STATUS_RUNNING = "running"
-STATUS_UNAVAILABLE = "backend_unavailable"
+CONF_ZONE_CODE = "zone_code"
+# Optional: an entity SpotSteer switches directly, so no automation is needed.
+CONF_CONTROLLED_SWITCH = "controlled_switch"
 
 # Price levels, mirroring the backend PriceQuantile enum (0/1/2).
 PRICE_LEVELS = ["green", "yellow", "red"]
 
+# The bundled Lovelace card, shipped inside the integration so HACS carries it.
+CARD_FILENAME = "spotsteer-card.js"
+CARD_SOURCE_PATH = f"custom_components/{DOMAIN}/www/{CARD_FILENAME}"
+CARD_URL = f"/{DOMAIN}/{CARD_FILENAME}"
+
 # Backend
 SCHEDULE_PATH = "/api/homeassistant/schedule"
+# The zone list, which the config flow turns into a dropdown. Doubles as the reachability probe.
+ZONES_PATH = "/api/zones"
+ZONE_RESOLVE_PATH = "/api/zones/resolve"
 API_TIMEOUT_SECONDS = 30
 
 # Defaults
-DEFAULT_BASE_URL = "http://localhost:8080"
+# TODO: the hosted backend; replace with `terraform output backend_url` before release.
+DEFAULT_BASE_URL = "http://host.docker.internal:5262"
 DEFAULT_DURATION_HOURS = 3.0
 DEFAULT_READY_BY = "06:00:00"
 

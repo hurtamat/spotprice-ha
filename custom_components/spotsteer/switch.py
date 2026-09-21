@@ -1,4 +1,4 @@
-"""Switch platform for SpotBuddy."""
+"""Switch platform for SpotSteer."""
 
 import logging
 from typing import Any
@@ -13,27 +13,29 @@ from .const import (
     DOMAIN,
     ENTITY_KEY_CONTINUOUS_SWITCH,
     ENTITY_KEY_ENABLED_SWITCH,
+    ENTITY_KEY_UNAVAILABLE_SWITCH,
     SWITCH,
 )
-from .coordinator import SpotBuddyCoordinator
-from .entity import SpotBuddyEntity
+from .coordinator import SpotSteerCoordinator
+from .entity import SpotSteerEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry, async_add_devices) -> None:
     """Set up the switch platform."""
-    coordinator: SpotBuddyCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: SpotSteerCoordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_devices(
         [
-            SpotBuddySwitchEnabled(entry, coordinator),
-            SpotBuddySwitchContinuous(entry, coordinator),
+            SpotSteerSwitchEnabled(entry, coordinator),
+            SpotSteerSwitchContinuous(entry, coordinator),
+            SpotSteerSwitchUnavailableWindow(entry, coordinator),
         ]
     )
 
 
 # pylint: disable=abstract-method
-class SpotBuddySwitch(SpotBuddyEntity, SwitchEntity, RestoreEntity):
+class SpotSteerSwitch(SpotSteerEntity, SwitchEntity, RestoreEntity):
     """Base switch; its state survives a restart."""
 
     _platform = SWITCH
@@ -69,7 +71,7 @@ class SpotBuddySwitch(SpotBuddyEntity, SwitchEntity, RestoreEntity):
         raise NotImplementedError
 
 
-class SpotBuddySwitchEnabled(SpotBuddySwitch):
+class SpotSteerSwitchEnabled(SpotSteerSwitch):
     """Master switch. Off means the run block sensor stays off."""
 
     _entity_key = ENTITY_KEY_ENABLED_SWITCH
@@ -79,7 +81,7 @@ class SpotBuddySwitchEnabled(SpotBuddySwitch):
         self.coordinator.enabled = bool(self.is_on)
 
 
-class SpotBuddySwitchContinuous(SpotBuddySwitch):
+class SpotSteerSwitchContinuous(SpotSteerSwitch):
     """Whether the hours must run back to back."""
 
     _entity_key = ENTITY_KEY_CONTINUOUS_SWITCH
@@ -88,3 +90,14 @@ class SpotBuddySwitchContinuous(SpotBuddySwitch):
 
     def _push_to_coordinator(self) -> None:
         self.coordinator.continuous_block = bool(self.is_on)
+
+
+class SpotSteerSwitchUnavailableWindow(SpotSteerSwitch):
+    """Whether the do-not-run window applies. Off ⇒ the two times are ignored."""
+
+    _entity_key = ENTITY_KEY_UNAVAILABLE_SWITCH
+    _attr_entity_category = EntityCategory.CONFIG
+    _default_on = False
+
+    def _push_to_coordinator(self) -> None:
+        self.coordinator.unavailable_enabled = bool(self.is_on)

@@ -2,35 +2,36 @@
   "config": {
     "step": {
       "user": {
-        "title": "SpotBuddy",
-        "description": "Connect to your SpotBuddy backend. The coordinates default to your Home Assistant location and decide which bidding zone your prices come from.",
+        "title": "SpotSteer",
         "data": {
           "device_name": "Name",
-          "base_url": "Backend URL",
-          "api_key": "API key",
-          "latitude": "Latitude",
-          "longitude": "Longitude"
+          "base_url": "SpotSteer address",
+          "zone_code": "Electricity zone",
+          "controlled_switch": "Controlled switch (optional)"
         }
       }
     },
     "error": {
-      "invalid_url": "The backend URL must start with http:// or https://"
+      "invalid_url": "The address must start with http:// or https://",
+      "cannot_connect": "Could not reach SpotSteer. Check that Home Assistant can get online, then try again. If you were given a different address, you can enter it below.",
+      "unknown_zone": "Pick a zone from the list."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "SpotBuddy",
+        "title": "SpotSteer",
         "data": {
-          "base_url": "Backend URL",
-          "api_key": "API key",
-          "latitude": "Latitude",
-          "longitude": "Longitude"
+          "base_url": "SpotSteer address",
+          "zone_code": "Electricity zone",
+          "controlled_switch": "Controlled switch (optional)"
         }
       }
     },
     "error": {
-      "invalid_url": "The backend URL must start with http:// or https://"
+      "invalid_url": "The address must start with http:// or https://",
+      "cannot_connect": "Could not reach SpotSteer. Check that Home Assistant can get online, then try again. If you were given a different address, you can enter it below.",
+      "unknown_zone": "Pick a zone from the list."
     }
   },
   "entity": {
@@ -40,17 +41,6 @@
       }
     },
     "sensor": {
-      "status": {
-        "name": "Status",
-        "state": {
-          "disabled": "Disabled",
-          "waiting_for_plan": "Waiting for plan",
-          "no_plan": "No plan",
-          "waiting_to_start": "Waiting to start",
-          "running": "Running",
-          "backend_unavailable": "Backend unavailable"
-        }
-      },
       "price": {
         "name": "Current price"
       },
@@ -61,6 +51,12 @@
           "yellow": "Average",
           "red": "Expensive"
         }
+      },
+      "next_start": {
+        "name": "Next start"
+      },
+      "next_end": {
+        "name": "Next end"
       }
     },
     "switch": {
@@ -69,6 +65,9 @@
       },
       "continuous_block": {
         "name": "Continuous block"
+      },
+      "unavailable_window": {
+        "name": "Use unavailable window"
       }
     },
     "number": {

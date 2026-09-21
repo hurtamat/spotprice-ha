@@ -1,0 +1,138 @@
+"""Client for the SpotSteer backend."""
+
+from __future__ import annotations
+
+import asyncio
+from datetime import datetime, time as dt_time
+import logging
+from typing import Any
+
+import aiohttp
+
+from .const import (
+    API_TIMEOUT_SECONDS,
+    SCHEDULE_PATH,
+    ZONE_RESOLVE_PATH,
+    ZONES_PATH,
+)
+
+_LOGGER = logging.getLogger(__name__)
+
+
+class SpotSteerApiError(Exception):
+    """Raised when the backend cannot be reached or answers with an error."""
+
+
+class SpotSteerAuthError(SpotSteerApiError):
+    """Raised when the backend rejects the API key."""
+
+
+class SpotSteerApiClient:
+    """Thin wrapper over POST /api/homeassistant/schedule.
+
+    One call per refresh: the response carries the committed plan and the price
+    curve together.
+    """
+
+    def __init__(
+        self, session: aiohttp.ClientSession, base_url: str, api_key: str | None
+    ) -> None:
+        self._session = session
+        self._base_url = base_url.rstrip("/")
+        self._api_key = api_key
+
+    async def async_get_schedule(
+        self,
+        *,
+        device_id: str,
+        zone_code: str,
+        ready_by_utc: datetime | None,
+        duration_hours: float,
+        continuous_block: bool,
+        unavailable_from: dt_time | None = None,
+        unavailable_to: dt_time | None = None,
+    ) -> dict[str, Any]:
+        """Ask the backend for this device's plan. Returns the parsed body."""
+        payload: dict[str, Any] = {
+            "device_id": device_id,
+            "zone_code": zone_code,
+            "duration_hours": duration_hours,
+            # Null ⇒ the backend schedules against the next 24h.
+            "ready_by_utc": (
+                ready_by_utc.isoformat() if ready_by_utc is not None else None
+            ),
+            "continuous_block": continuous_block,
+        }
+
+        # The window is optional and only meaningful with both ends set.
+        if unavailable_from is not None and unavailable_to is not None:
+            payload["unavailable"] = {
+                "from": unavailable_from.isoformat(),
+                "to": unavailable_to.isoformat(),
+            }
+
+        return await self._async_post(SCHEDULE_PATH, payload)
+
+    async def async_get_zones(self) -> list[dict[str, Any]]:
+        """The bidding zones, for the config flow's dropdown. Doubles as the reachability check."""
+        url = f"{self._base_url}{ZONES_PATH}"
+
+        try:
+            async with asyncio.timeout(API_TIMEOUT_SECONDS):
+                response = await self._session.get(url)
+                if response.status in (401, 403):
+                    raise SpotSteerAuthError(
+                        f"Backend rejected the request ({response.status})"
+                    )
+                if response.status >= 400:
+                    raise SpotSteerApiError(f"{url} returned {response.status}")
+                return await response.json()
+        except TimeoutError as err:
+            raise SpotSteerApiError(f"Timeout calling {url}") from err
+        except aiohttp.ClientError as err:
+            raise SpotSteerApiError(f"Cannot reach {url}: {err}") from err
+
+    async def async_resolve_zone(
+        self, *, latitude: float, longitude: float
+    ) -> str | None:
+        """The zone code covering these coordinates, or None if the backend cannot say."""
+        url = f"{self._base_url}{ZONE_RESOLVE_PATH}"
+        params = {"lat": str(latitude), "lon": str(longitude)}
+
+        try:
+            async with asyncio.timeout(API_TIMEOUT_SECONDS):
+                response = await self._session.get(url, params=params)
+                if response.status >= 400:
+                    return None
+                body = await response.json()
+                return body.get("code")
+        except (TimeoutError, aiohttp.ClientError):
+            return None
+
+    async def _async_post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        """POST JSON and return the parsed body, or raise SpotSteerApiError."""
+        url = f"{self._base_url}{path}"
+        headers = {"Content-Type": "application/json"}
+        if self._api_key:
+            headers["X-Api-Key"] = self._api_key
+
+        try:
+            async with asyncio.timeout(API_TIMEOUT_SECONDS):
+                response = await self._session.post(url, json=payload, headers=headers)
+
+                if response.status in (401, 403):
+                    raise SpotSteerAuthError(
+                        f"Backend rejected the API key ({response.status})"
+                    )
+                if response.status >= 400:
+                    body = await response.text()
+                    raise SpotSteerApiError(
+                        f"{url} returned {response.status}: {body[:200]}"
+                    )
+
+                return await response.json()
+
+        except TimeoutError as err:
+            raise SpotSteerApiError(f"Timeout calling {url}") from err
+        except aiohttp.ClientError as err:
+            raise SpotSteerApiError(f"Cannot reach {url}: {err}") from err
