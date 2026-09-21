@@ -17,7 +17,7 @@ Keep your electricity supplier, keep your devices. No hardware to buy.
 
 ### HACS
 
-[![Open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=hurtamat&repository=spotsteer-ha&category=integration)
+[![Open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=hurtamat&repository=spotprice-ha&category=integration)
 
 The badge opens your own Home Assistant with this repository pre-filled — no URLs to copy. Click
 **Download**, then restart Home Assistant and add the integration:
@@ -142,7 +142,7 @@ If you left **Controlled switch** empty, drive things yourself from
 
 ### With the blueprint
 
-[![Import the SpotSteer blueprint.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fhurtamat%2Fspotsteer-ha%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fspotsteer%2Fcheap_hours_switch.yaml)
+[![Import the SpotSteer blueprint.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fhurtamat%2Fspotprice-ha%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fspotsteer%2Fcheap_hours_switch.yaml)
 
 Import it, pick the run sensor and the device to control from dropdowns, and optionally add extra
 conditions such as "somebody is home". No YAML.

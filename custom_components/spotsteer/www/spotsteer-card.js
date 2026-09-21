@@ -296,5 +296,5 @@ window.customCards.push({
   name: "SpotSteer",
   description: "Day-ahead prices with your planned cheap hours highlighted",
   preview: true,
-  documentationURL: "https://github.com/hurtamat/spotsteer-ha",
+  documentationURL: "https://github.com/hurtamat/spotprice-ha",
 });

@@ -6,7 +6,7 @@ from homeassistant.const import __version__ as HA_VERSION
 NAME = "SpotSteer"
 DOMAIN = "spotsteer"
 VERSION = "0.2.0"
-ISSUE_URL = "https://github.com/hurtamat/spotsteer-ha/issues"
+ISSUE_URL = "https://github.com/hurtamat/spotprice-ha/issues"
 
 # Icons
 ICON = "mdi:flash"

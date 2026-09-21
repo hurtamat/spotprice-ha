@@ -8,7 +8,7 @@ blueprint:
   domain: automation
   homeassistant:
     min_version: "2024.4.0"
-  source_url: https://github.com/hurtamat/spotsteer-ha/blob/main/blueprints/automation/spotsteer/cheap_hours_switch.yaml
+  source_url: https://github.com/hurtamat/spotprice-ha/blob/main/blueprints/automation/spotsteer/cheap_hours_switch.yaml
   input:
     spotsteer_sensor:
       name: SpotSteer run sensor

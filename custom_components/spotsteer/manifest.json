@@ -9,9 +9,9 @@
     "frontend",
     "http"
   ],
-  "documentation": "https://github.com/hurtamat/spotsteer-ha",
+  "documentation": "https://github.com/hurtamat/spotprice-ha",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/hurtamat/spotsteer-ha/issues",
+  "issue_tracker": "https://github.com/hurtamat/spotprice-ha/issues",
   "requirements": [],
   "version": "0.2.0"
 }

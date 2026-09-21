@@ -5,15 +5,15 @@
         "title": "SpotSteer",
         "data": {
           "device_name": "Name",
-          "base_url": "Backend URL",
+          "base_url": "SpotSteer address",
           "zone_code": "Electricity zone",
           "controlled_switch": "Controlled switch (optional)"
         }
       }
     },
     "error": {
-      "invalid_url": "The backend URL must start with http:// or https://",
-      "cannot_connect": "Could not reach the SpotSteer backend. Check that Home Assistant has internet access, then try again - you can also enter a different backend URL below.",
+      "invalid_url": "The address must start with http:// or https://",
+      "cannot_connect": "Could not reach SpotSteer. Check that Home Assistant can get online, then try again. If you were given a different address, you can enter it below.",
       "unknown_zone": "Pick a zone from the list."
     }
   },
@@ -22,15 +22,15 @@
       "init": {
         "title": "SpotSteer",
         "data": {
-          "base_url": "Backend URL",
+          "base_url": "SpotSteer address",
           "zone_code": "Electricity zone",
           "controlled_switch": "Controlled switch (optional)"
         }
       }
     },
     "error": {
-      "invalid_url": "The backend URL must start with http:// or https://",
-      "cannot_connect": "Could not reach the SpotSteer backend. Check that Home Assistant has internet access, then try again - you can also enter a different backend URL below.",
+      "invalid_url": "The address must start with http:// or https://",
+      "cannot_connect": "Could not reach SpotSteer. Check that Home Assistant can get online, then try again. If you were given a different address, you can enter it below.",
       "unknown_zone": "Pick a zone from the list."
     }
   },
