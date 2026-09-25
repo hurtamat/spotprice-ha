@@ -64,8 +64,8 @@ ZONE_RESOLVE_PATH = "/api/zones/resolve"
 API_TIMEOUT_SECONDS = 30
 
 # Defaults
-# TODO: the hosted backend; replace with `terraform output backend_url` before release.
-DEFAULT_BASE_URL = "http://host.docker.internal:5262"
+# One package serves every install, so this is the hosted backend; local testing types its own URL.
+DEFAULT_BASE_URL = "https://api.spotsteer.eu"
 DEFAULT_DURATION_HOURS = 3.0
 DEFAULT_READY_BY = "06:00:00"
 
