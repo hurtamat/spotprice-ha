@@ -1,186 +1,120 @@
 # SpotSteer for Home Assistant
 
-Automate your appliances around day-ahead electricity spot prices. SpotSteer works out your cheapest
-hours server-side and publishes them to Home Assistant as entities; your automations act on them, so
-anything Home Assistant controls becomes price-aware.
+[![hacs][hacs-shield]][hacs]
+[![License][license-shield]][license]
 
-Keep your electricity supplier, keep your devices. No hardware to buy.
+<img src="custom_components/spotsteer/brand/icon.png" alt="SpotSteer" width="96">
 
-> **Status:** early. The integration is functional but has not been through a public release yet.
+SpotSteer runs your appliances in the cheapest hours of the day-ahead electricity market. Tell it how
+many hours a device needs and when it has to be done; the SpotSteer backend picks the cheapest hours
+for your bidding zone, and Home Assistant switches the device on and off.
 
-## Requirements
+The plan is fetched after midnight and again once tomorrow's prices publish (13:05 UTC), then
+checked against the clock every 15 minutes. It is committed, not re-optimised during the day, so a
+device never runs longer than you asked for. Keep your supplier and your hardware: anything Home
+Assistant can switch becomes price-aware.
 
-- Home Assistant 2024.11 or newer
-- [HACS](https://hacs.xyz/) for the easy install path
+## Features
+
+- Cheapest hours for any European zones, from ENTSO-E day-ahead prices.
+- One unbroken run for a boiler or washer, or split across the cheapest hours for an EV.
+- A deadline, and an optional window the device must never run in.
+- Switches a device for you, or publishes a sensor your own automations can follow.
+- Current price and a cheap / average / expensive level for the current slot.
+- A bundled dashboard card: the day's prices with the planned hours shaded.
+- A blueprint for driving any device from the plan without YAML.
+- One config entry per appliance; add the integration again for the next one.
 
 ## Installation
 
 ### HACS
 
-[![Open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=hurtamat&repository=spotprice-ha&category=integration)
+1. Open the repository in HACS, press **Download**, then restart Home Assistant.
 
-The badge opens your own Home Assistant with this repository pre-filled — no URLs to copy. Click
-**Download**, then restart Home Assistant and add the integration:
+   [![Open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=hurtamat&repository=spotprice-ha&category=integration)
 
-[![Add the SpotSteer integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=spotsteer)
+2. Add the integration.
 
-Doing it by hand instead: HACS → three-dot menu → **Custom repositories** → add this repository's
-URL with category **Integration** → find **SpotSteer** → **Download** → restart → Settings →
-Devices & Services → **Add integration** → **SpotSteer**.
+   [![Add the SpotSteer integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=spotsteer)
 
 ### Manual
 
-Copy `custom_components/spotsteer/` into your Home Assistant `config/custom_components/` directory
-and restart Home Assistant.
+1. Copy `custom_components/spotsteer/` into `config/custom_components/`.
+2. Restart Home Assistant.
+3. Settings → Devices & services → **Add integration** → **SpotSteer**.
 
 ## Configuration
 
-Everything is configured in the UI, and there is no backend address to type — SpotSteer knows where
-its own backend is. The dialog asks for:
+Set up in the UI. Everything except the name can be changed later under **Configure**.
 
-| Field | Required | Meaning |
+| Field | Required | Description |
 | --- | --- | --- |
-| Name | yes | What to call this appliance |
-| Electricity zone | yes | Which day-ahead market your prices come from. Preselected from your Home Assistant location; change it if the guess is wrong. |
-| Controlled switch | no | Pick a switch and SpotSteer turns it on and off for you. Leave it empty to drive things from your own automations instead. |
+| Name | Yes | What to call this appliance. |
+| Electricity zone | Yes | The day-ahead market your prices come from. Preselected from your Home Assistant location. |
+| Controlled switch | No | A `switch` or `input_boolean` SpotSteer turns on and off. Leave empty to drive devices from your own automations. |
 
-**Setting a controlled switch is the whole setup.** SpotSteer switches that entity on when a cheap
-block starts and off when it ends — no automation, no YAML. It only acts when the entity's state
-differs from what the plan wants, so if you flip it by hand it stays flipped until the next
-15-minute boundary.
+### Configuration entities
 
-## Troubleshooting
+| Entity | Type | Description |
+| --- | --- | --- |
+| `number.spotsteer_duration` | Number | Hours of power the appliance needs. 0.25–24 in steps of 0.25, default 3. |
+| `time.spotsteer_ready_by` | Time | When it has to be finished. Default 06:00. Cleared, the plan covers the next 24 hours. |
+| `switch.spotsteer_continuous_block` | Switch | On: one unbroken run. Off (default): the cheapest hours wherever they fall. |
+| `switch.spotsteer_unavailable_window` | Switch | Applies the do-not-run window below. Off by default. |
+| `time.spotsteer_unavailable_from` / `_to` | Time | The do-not-run window. May wrap past midnight. |
+| `switch.spotsteer_enabled` | Switch | Master switch. On by default. |
+| `button.spotsteer_refresh_plan` | Button | Fetch a new plan now. |
 
-**"Could not reach the SpotSteer backend"** during setup. SpotSteer talks to our hosted
-backend, so this normally means Home Assistant has no outbound internet access - check
-that first. When the message appears, a **Backend URL** field is added to the form: use it
-if you run your own backend, or if you were told a different address. The field then stays
-available under **Configure** so you can change it back.
-
-**The card shows "No price curve yet."** The integration has no plan yet. Press
-**Refresh plan** on the device page. If it stays empty, the backend has no prices stored
-for your zone yet; tomorrow's prices only publish in the early afternoon.
-
-**Nothing switches on.** Check that **Controlled switch** points at a switch that still
-exists - a renamed or removed device leaves a dead reference, and SpotSteer logs
-`Controlled entity ... does not exist` every 15 minutes.
+Changing any of these fetches a new plan straight away.
 
 ## Entities
 
-One config entry drives one appliance. Add the integration a second time for a second appliance.
+| Entity | Type | Description |
+| --- | --- | --- |
+| `binary_sensor.spotsteer_running` | Binary sensor | On during the planned hours. The one to automate on. |
+| `sensor.spotsteer_current_price` | Sensor | Price of the current slot, in EUR/MWh. |
+| `sensor.spotsteer_price_level` | Sensor | `green`, `yellow` or `red` (cheap, average, expensive) for the current slot. |
+| `sensor.spotsteer_next_start` | Sensor | When the device next switches on. |
+| `sensor.spotsteer_next_end` | Sensor | When the current or next run ends. |
 
-### What SpotSteer tells you
+## Sensor attributes
 
-| Entity | Description |
+`binary_sensor.spotsteer_running`
+
+| Attribute | Description |
 | --- | --- |
-| `binary_sensor.spotsteer_running` | **The one that matters.** On during the cheap hours it picked. Attributes carry the zone, the full block list, and `schedule` for charting cards. |
-| `sensor.spotsteer_current_price` | EUR/MWh for the current slot. The `curve` attribute holds today and tomorrow. Click it for a price history graph - no extra cards needed. |
-| `sensor.spotsteer_next_start` | When the cheap hours next begin, shown in your own timezone ("in 4 hours"). |
-| `sensor.spotsteer_next_end` | When the current run ends, or the next one would. |
-| `sensor.spotsteer_price_level` | `green`, `yellow` or `red` for the current slot |
+| `scheduled` | `false` when the job does not fit the window. Never a partial plan. |
+| `blocks` | The planned runs: `start_utc`, `end_utc`, `eur_per_mwh`. |
+| `schedule` | The same runs as an on/off step series, for chart cards. |
+| `zone_name` | The bidding zone the plan was made for. |
 
-### What you tell SpotSteer
+`sensor.spotsteer_current_price`
 
-| Entity | Description |
+| Attribute | Description |
 | --- | --- |
-| `number.spotsteer_duration` | Hours of power the appliance needs |
-| `time.spotsteer_ready_by` | The deadline it must finish by |
-| `switch.spotsteer_continuous_block` | One unbroken run, or split for the absolute cheapest hours |
-| `switch.spotsteer_unavailable_window` | Whether the do-not-run window below applies |
-| `time.spotsteer_unavailable_from` / `_to` | The do-not-run window, used only while that switch is on |
-| `switch.spotsteer_enabled` | Master off switch |
-| `button.spotsteer_refresh_plan` | Fetch the plan again now |
+| `curve` | Today's and tomorrow's prices, each slot with its level. |
 
-## The chart
+## Dashboard card
 
-SpotSteer ships its own Lovelace card, so there is nothing extra to install. Edit a dashboard,
-**+ Add card**, search **SpotSteer**, and pick your Running sensor:
+Edit a dashboard, **Add card**, search **SpotSteer**, and pick the Running sensor. The shaded blocks
+are the hours the device will run.
 
-```yaml
-type: custom:spotsteer-card
-entity: binary_sensor.spotsteer_running
-```
+<img src="assets/card.webp" alt="The SpotSteer card" width="480">
 
-It draws the day-ahead prices coloured cheap/average/expensive, shades every hour SpotSteer
-plans to run - several separate bands when the hours are split rather than continuous - and
-marks now. Times are shown in your own timezone. One card per appliance: point each at that
-appliance's Running sensor.
+## Verifying the setup
 
-If the card does not appear after an update, Home Assistant's service worker is still serving a
-cached copy — a hard refresh is not always enough. Open the browser devtools console and run
-`navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()))`, then
-reopen the tab. Devtools → Application → Clear site data does the same thing.
+1. Open the SpotSteer device, set **Duration** and **Ready by**, and press **Refresh plan**.
+2. **Next start** and **Next end** show times, and the card shades the planned hours.
+3. In Developer tools → States, `binary_sensor.spotsteer_running` has `scheduled: true`.
+4. With a controlled switch, it turns on at **Next start** and off at **Next end**.
 
-### Using another chart card instead
+## Licence
 
-`binary_sensor.spotsteer_running` also exposes `schedule`, an on/off step series, next to the
-raw `blocks`. With [ApexCharts Card](https://github.com/RomRider/apexcharts-card):
+MIT, see [LICENSE](./LICENSE). The integration skeleton is derived from
+[EV Smart Charging](https://github.com/jonasbkarlsson/ev_smart_charging) by Jonas Karlsson (MIT, see
+[NOTICE](./NOTICE)); the scheduling is SpotSteer's own, done server-side.
 
-```yaml
-type: custom:apexcharts-card
-graph_span: 2d
-span:
-  start: day
-series:
-  - entity: sensor.spotsteer_current_price
-    name: Price
-    type: column
-    data_generator: |
-      return entity.attributes.curve.map(p => [new Date(p.start_utc), p.eur_per_mwh]);
-  - entity: binary_sensor.spotsteer_running
-    name: Running
-    type: area
-    curve: stepline
-    data_generator: |
-      return entity.attributes.schedule.map(p => [new Date(p.start), p.value]);
-```
-
-## Using it without a controlled switch
-
-If you left **Controlled switch** empty, drive things yourself from
-`binary_sensor.spotsteer_running`, which is on during the cheap hours.
-
-### With the blueprint
-
-[![Import the SpotSteer blueprint.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fhurtamat%2Fspotprice-ha%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fspotsteer%2Fcheap_hours_switch.yaml)
-
-Import it, pick the run sensor and the device to control from dropdowns, and optionally add extra
-conditions such as "somebody is home". No YAML.
-
-### By hand
-
-```yaml
-automation:
-  - alias: Boiler follows SpotSteer
-    triggers:
-      - trigger: state
-        entity_id: binary_sensor.spotsteer_running
-    actions:
-      - action: "switch.turn_{{ 'on' if trigger.to_state.state == 'on' else 'off' }}"
-        target:
-          entity_id: switch.my_boiler_plug
-```
-
-The same sensor can drive any number of devices.
-
-## How the plan is made
-
-Day-ahead prices publish each afternoon. SpotSteer picks your cheapest hours for the day and
-**commits** that plan. The integration fetches it after midnight and again at 13:05 UTC, then
-evaluates the stored plan against the clock every 15 minutes — it never re-optimises during the day.
-That is deliberate: a plan that re-optimises as time passes will happily run an appliance for more
-hours than you asked for.
-
-## Development
-
-CI runs hassfest, HACS validation and `black`. To work on it locally, symlink `custom_components/spotsteer`
-into your Home Assistant config directory.
-
-## Licence and attribution
-
-MIT — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
-
-The integration's skeleton — entity base classes, platform patterns, config entry lifecycle and CI
-workflow — is derived from [EV Smart Charging](https://github.com/jonasbkarlsson/ev_smart_charging)
-by Jonas Karlsson, also MIT. Its scheduling logic and EV-specific handling are not used here:
-SpotSteer reads a plan committed by its own backend rather than optimising locally.
+[hacs]: https://hacs.xyz
+[hacs-shield]: https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge
+[license]: ./LICENSE
+[license-shield]: https://img.shields.io/github/license/hurtamat/spotprice-ha?style=for-the-badge
